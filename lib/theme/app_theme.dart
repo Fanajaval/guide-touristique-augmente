@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   //principales
@@ -24,4 +25,92 @@ class AppColors {
   // États
   static const Color success = Color(0xFF2E7D32);
   static const Color error = Color(0xFFDC2626);
+}
+
+class AppTheme {
+  static ThemeData lightTheme = ThemeData(
+    useMaterial3: true,
+
+    scaffoldBackgroundColor: AppColors.background,
+
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      primary: AppColors.primary,
+      secondary: AppColors.accent,
+      surface: AppColors.white,
+    ),
+
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.background,
+      foregroundColor: AppColors.textPrimary,
+      elevation: 0,
+      centerTitle: false,
+    ),
+
+    textTheme: GoogleFonts.outfitTextTheme(
+      const TextTheme(
+        displayLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        displayMedium: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        headlineLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        headlineMedium: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        titleLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        bodyLarge: TextStyle(
+          color: AppColors.textPrimary,
+        ),
+        bodyMedium: TextStyle(
+          color: AppColors.textPrimary,
+        ),
+      ),
+    ),
+
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.white,
+        elevation: 4,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 14,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+      ),
+    ),
+
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: AppColors.primary,
+          width: 1.5,
+        ),
+      ),
+    ),
+  );
 }
