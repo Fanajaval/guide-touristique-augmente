@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 
 import '../data/mock_pois.dart';
 import '../models/poi.dart';
+import 'poi_detail_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -704,6 +705,14 @@ class _PoiBottomSheet extends StatelessWidget {
                 onPressed: () {
                   Navigator.pop(context);
                   
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PoiDetailScreen(
+                        poi: poi,
+                      ),
+                    ),
+                  );
 
                 },
 
