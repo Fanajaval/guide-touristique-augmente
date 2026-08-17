@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'screens/main_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -15,17 +16,7 @@ class MadaGuideApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'MadaGuide',
       theme: AppTheme.lightTheme,
-      home: const Scaffold(
-        body: Center(
-          child: Text(
-            'MadaGuide',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
+      home: const MainScreen(),
     );
   }
 }

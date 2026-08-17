@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-class ExploreScreen extends StatelessWidget {
-  const ExploreScreen({super.key});
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +11,7 @@ class ExploreScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: Center(
         child: Text(
-          'Explorer',
+          'Profil',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
