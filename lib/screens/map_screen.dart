@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 
 class MapScreen extends StatefulWidget {
@@ -13,9 +17,16 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
+  final LocationService _locationService = LocationService();
 
-  // Position temporaire pour les tests.
-  // Elle sera remplacée par la position GPS réelle.
+  StreamSubscription<Position>? _positionSubscription;
+
+  //position_utilisateur
+  LatLng? _userPosition;
+
+  bool _isLoadingLocation = true;
+
+  //position si gps indispo
   final LatLng _initialPosition = const LatLng(
     -18.8792,
     47.5079,
@@ -23,50 +34,129 @@ class _MapScreenState extends State<MapScreen> {
 
   double _currentZoom = 13.0;
 
+  @override
+  void initState() {
+    super.initState();
+    //recuperer position actuel
+    _loadUserLocation();
+
+    //ecoute déplacement_user
+    _listenToLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    final position = await _locationService.getCurrentPosition();
+
+    if (!mounted) return;
+
+    if (position != null) {
+      final userPosition = LatLng(
+        position.latitude,
+        position.longitude,
+      );
+
+      setState(() {
+        _userPosition = userPosition;
+        _isLoadingLocation = false;
+      });
+      
+      _mapController.move(
+        userPosition,
+        15,
+      );
+
+      setState(() {
+        _currentZoom = 15.0;
+      });
+    } else {
+      //gps indispo ou permission refusé
+      setState(() {
+        _isLoadingLocation = false;
+      });
+    }
+  }
+//suivi position user
+  void _listenToLocation() {
+    _positionSubscription =
+        _locationService.getPositionStream().listen(
+      (position) {
+        if (!mounted) return;
+
+        setState(() {
+          _userPosition = LatLng(
+            position.latitude,
+            position.longitude,
+          );
+        });
+      },
+    );
+  }
+
   void _zoomIn() {
+    final center = _mapController.camera.center;
+
     setState(() {
-      _currentZoom += 1;
+      _currentZoom = (_currentZoom + 1).clamp(5.0, 18.0);
     });
 
     _mapController.move(
-      _initialPosition,
+      center,
       _currentZoom,
     );
   }
 
   void _zoomOut() {
+    final center = _mapController.camera.center;
+
     setState(() {
-      _currentZoom -= 1;
+      _currentZoom = (_currentZoom - 1).clamp(5.0, 18.0);
     });
 
     _mapController.move(
-      _initialPosition,
+      center,
       _currentZoom,
     );
   }
 
   void _recenterMap() {
+    if (_userPosition == null) {
+      return;
+    }
+
+    setState(() {
+      _currentZoom = 15.0;
+    });
+
     _mapController.move(
-      _initialPosition,
+      _userPosition!,
       _currentZoom,
     );
   }
 
   @override
+  void dispose() {
+    _positionSubscription?.cancel();
+    _mapController.dispose();
+
+    super.dispose();
+  }
+
+  //interface
+  @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // ─────────────────────────────────────
-        // CARTE
-        // ─────────────────────────────────────
+        //carte
         FlutterMap(
           mapController: _mapController,
+
           options: MapOptions(
             initialCenter: _initialPosition,
             initialZoom: _currentZoom,
             minZoom: 5,
             maxZoom: 18,
           ),
+
           children: [
             TileLayer(
               urlTemplate:
@@ -74,45 +164,89 @@ class _MapScreenState extends State<MapScreen> {
               userAgentPackageName:
                   'com.example.guide_touristique_augmente',
             ),
-
-            // Marqueur temporaire
+ 
+          //position utilisateur
             MarkerLayer(
               markers: [
-                Marker(
-                  point: _initialPosition,
-                  width: 50,
-                  height: 50,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.white,
-                        width: 3,
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x33000000),
-                          blurRadius: 8,
-                          offset: Offset(0, 3),
+                if (_userPosition != null)
+                  Marker(
+                    point: _userPosition!,
+                    width: 56,
+                    height: 56,
+
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(
+                          alpha: 0.15,
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.location_on,
-                      color: AppColors.white,
-                      size: 28,
+                        shape: BoxShape.circle,
+                      ),
+
+                      child: Center(
+                        child: Container(
+                          width: 22,
+                          height: 22,
+
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+
+                            border: Border.all(
+                              color: AppColors.white,
+                              width: 3,
+                            ),
+
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x33000000),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ],
         ),
 
-        // ─────────────────────────────────────
-        // BARRE DE RECHERCHE
-        // ─────────────────────────────────────
+        if (_isLoadingLocation)
+          const Positioned(
+            top: 85,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Card(
+                elevation: 4,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'Localisation en cours...',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
         Positioned(
           top: 16,
           left: 16,
@@ -120,18 +254,12 @@ class _MapScreenState extends State<MapScreen> {
           child: _buildSearchBar(),
         ),
 
-        // ─────────────────────────────────────
-        // CONTRÔLES DE LA CARTE
-        // ─────────────────────────────────────
         Positioned(
           right: 16,
           top: 100,
           child: _buildMapControls(),
         ),
 
-        // ─────────────────────────────────────
-        // INFORMATIONS MADA GUIDE
-        // ─────────────────────────────────────
         Positioned(
           left: 16,
           bottom: 90,
@@ -141,24 +269,33 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  //barre de recherche
   Widget _buildSearchBar() {
     return Material(
       elevation: 4,
       borderRadius: BorderRadius.circular(24),
+
       child: Container(
         height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+        ),
+
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(24),
         ),
+
         child: Row(
           children: [
             const Icon(
               Icons.search,
               color: AppColors.primary,
             ),
+
             const SizedBox(width: 12),
+
             Expanded(
               child: Text(
                 'Rechercher un lieu...',
@@ -168,6 +305,7 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ),
             ),
+
             const Icon(
               Icons.tune,
               color: AppColors.primary,
@@ -181,16 +319,23 @@ class _MapScreenState extends State<MapScreen> {
   Widget _buildMapControls() {
     return Column(
       children: [
+        // Zoom +
         _MapButton(
           icon: Icons.add,
           onPressed: _zoomIn,
         ),
+
         const SizedBox(height: 8),
+
+        //zoom
         _MapButton(
           icon: Icons.remove,
           onPressed: _zoomOut,
         ),
+
         const SizedBox(height: 8),
+
+        //position actuel
         _MapButton(
           icon: Icons.my_location,
           onPressed: _recenterMap,
@@ -199,15 +344,21 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+//info carte
   Widget _buildMapInfo() {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 14,
         vertical: 10,
       ),
+
       decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.95),
+        color: AppColors.white.withValues(
+          alpha: 0.95,
+        ),
+
         borderRadius: BorderRadius.circular(20),
+
         boxShadow: const [
           BoxShadow(
             color: Color(0x18000000),
@@ -216,15 +367,19 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
+
       child: const Row(
         mainAxisSize: MainAxisSize.min,
+
         children: [
           Icon(
             Icons.explore,
             color: AppColors.accent,
             size: 20,
           ),
+
           SizedBox(width: 8),
+
           Text(
             'Explorez autour de vous',
             style: TextStyle(
@@ -238,6 +393,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 }
 
+//botton
 class _MapButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
@@ -253,12 +409,15 @@ class _MapButton extends StatelessWidget {
       elevation: 4,
       shape: const CircleBorder(),
       color: AppColors.white,
+
       child: InkWell(
         onTap: onPressed,
         customBorder: const CircleBorder(),
+
         child: SizedBox(
           width: 48,
           height: 48,
+
           child: Icon(
             icon,
             color: AppColors.primary,
