@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -7,6 +8,9 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
+
+import '../data/mock_pois.dart';
+import '../models/poi.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -18,6 +22,44 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   final LocationService _locationService = LocationService();
+
+  IconData _getPoiIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'monument':
+        return Icons.account_balance;
+
+      case 'nature':
+        return Icons.park;
+
+      case 'musée':
+        return Icons.museum;
+
+      case 'marché':
+        return Icons.storefront;
+
+      case 'restaurant':
+        return Icons.restaurant;
+
+      case 'hôtel':
+        return Icons.hotel;
+
+      default:
+        return Icons.location_on;
+    }
+  }
+
+  void _showPoiPreview(Poi poi) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _PoiBottomSheet(
+          poi: poi,
+        );
+      },
+    );
+  }
 
   StreamSubscription<Position>? _positionSubscription;
 
@@ -58,16 +100,13 @@ class _MapScreenState extends State<MapScreen> {
       setState(() {
         _userPosition = userPosition;
         _isLoadingLocation = false;
+        _currentZoom = 15.0;
       });
-      
+
       _mapController.move(
         userPosition,
         15,
       );
-
-      setState(() {
-        _currentZoom = 15.0;
-      });
     } else {
       //gps indispo ou permission refusé
       setState(() {
@@ -173,7 +212,6 @@ class _MapScreenState extends State<MapScreen> {
                     point: _userPosition!,
                     width: 56,
                     height: 56,
-
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(
@@ -181,21 +219,17 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                         shape: BoxShape.circle,
                       ),
-
                       child: Center(
                         child: Container(
                           width: 22,
                           height: 22,
-
                           decoration: BoxDecoration(
                             color: AppColors.primary,
                             shape: BoxShape.circle,
-
                             border: Border.all(
                               color: AppColors.white,
                               width: 3,
                             ),
-
                             boxShadow: const [
                               BoxShadow(
                                 color: Color(0x33000000),
@@ -208,6 +242,66 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                   ),
+                  
+                //poi
+                ...mockPois.map(
+                  (poi) => Marker(
+                    point: LatLng(
+                      poi.latitude,
+                      poi.longitude,
+                    ),
+                    width: 50,
+                    height: 60,
+
+                    child: GestureDetector(
+                      onTap: () {
+                        _showPoiPreview(poi);
+                      },
+
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              shape: BoxShape.circle,
+
+                              border: Border.all(
+                                color: AppColors.white,
+                                width: 3,
+                              ),
+
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x33000000),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+
+                            child: Icon(
+                              _getPoiIcon(poi.category),
+                              color: AppColors.white,
+                              size: 22,
+                            ),
+                          ),
+
+                          // Petite pointe sous le marqueur
+                          CustomPaint(
+                            size: const Size(12, 6),
+                            painter: _MarkerPointerPainter(
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ],
@@ -428,3 +522,250 @@ class _MapButton extends StatelessWidget {
     );
   }
 }
+
+class _PoiBottomSheet extends StatelessWidget {
+  final Poi poi;
+
+  const _PoiBottomSheet({
+    required this.poi,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(28),
+        ),
+      ),
+
+      padding: const EdgeInsets.all(16),
+
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+
+                decoration: BoxDecoration(
+                  color: AppColors.grey.withValues(
+                    alpha: 0.4,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+            //image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+
+              child: Image.asset(
+                poi.imagePath,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+
+                errorBuilder: (
+                  context,
+                  error,
+                  stackTrace,
+                ) {
+                  return Container(
+                    height: 180,
+                    color: AppColors.background,
+
+                    child: const Center(
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 48,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 16),
+            //categorie
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
+
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(
+                  alpha: 0.12,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+
+              child: Text(
+                poi.category,
+                style: const TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+            //note+nom
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+
+              children: [
+                Expanded(
+                  child: Text(
+                    poi.name,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 21,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.star,
+                      color: AppColors.accent,
+                      size: 20,
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    Text(
+                      poi.rating.toString(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+            //adresse
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+
+                const SizedBox(width: 6),
+
+                Expanded(
+                  child: Text(
+                    poi.address,
+                    style: TextStyle(
+                      color: AppColors.grey,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+            //description
+            Text(
+              poi.description,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+
+              style: TextStyle(
+                color: AppColors.grey,
+                height: 1.4,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+            //bouton
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  
+
+                },
+
+                icon: const Icon(
+                  Icons.explore,
+                ),
+
+                label: const Text(
+                  'Explorer ce lieu',
+                ),
+
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: AppColors.white,
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MarkerPointerPainter extends CustomPainter {
+  final Color color;
+
+  _MarkerPointerPainter({
+    required this.color,
+  });
+
+  @override
+  void paint(
+    Canvas canvas,
+    Size size,
+  ) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = ui.Path();
+
+    path.moveTo(0, 0);
+    path.lineTo(size.width, 0);
+    path.lineTo(size.width / 2, size.height);
+    path.close();
+
+    canvas.drawPath(
+      path,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(
+    covariant _MarkerPointerPainter oldDelegate,
+  ) {
+    return oldDelegate.color != color;
+  }
+}
+

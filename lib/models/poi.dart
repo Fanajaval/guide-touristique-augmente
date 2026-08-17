@@ -5,7 +5,7 @@ class Poi {
   final String description;
   final double latitude;
   final double longitude;
-  final String imageUrl;
+  final String imagePath;
   final String address;
   final double rating;
 
@@ -16,7 +16,7 @@ class Poi {
     required this.description,
     required this.latitude,
     required this.longitude,
-    required this.imageUrl,
+    required this.imagePath,
     required this.address,
     required this.rating,
   });
