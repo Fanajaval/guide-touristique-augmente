@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../models/poi.dart';
+import '../services/favorites_service.dart';
 import '../theme/app_theme.dart';
 
-class PoiDetailScreen extends StatelessWidget {
+class PoiDetailScreen extends StatefulWidget {
   final Poi poi;
 
   const PoiDetailScreen({
@@ -12,13 +13,43 @@ class PoiDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<PoiDetailScreen> createState() => _PoiDetailScreenState();
+}
+
+class _PoiDetailScreenState extends State<PoiDetailScreen> {
+  final FavoritesService _favoritesService =
+      FavoritesService.instance;
+
+  bool get _isFavorite {
+    return _favoritesService.isFavorite(widget.poi);
+  }
+
+  void _toggleFavorite() {
+    setState(() {
+      _favoritesService.toggleFavorite(widget.poi);
+    });
+
+    final message = _isFavorite
+        ? '${widget.poi.name} ajouté aux favoris'
+        : '${widget.poi.name} retiré des favoris';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
 
       body: CustomScrollView(
         slivers: [
-          //image
+          //btn retour + image+btn favoris
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
@@ -29,11 +60,38 @@ class PoiDetailScreen extends StatelessWidget {
               color: AppColors.white,
             ),
 
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(
+                  right: 12,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withValues(
+                      alpha: 0.90,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    onPressed: _toggleFavorite,
+                    tooltip: _isFavorite
+                        ? 'Retirer des favoris'
+                        : 'Ajouter aux favoris',
+                    icon: Icon(
+                      _isFavorite
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
             flexibleSpace: FlexibleSpaceBar(
               background: Image.asset(
-                poi.imagePath,
+                widget.poi.imagePath,
                 fit: BoxFit.cover,
-
                 errorBuilder: (
                   context,
                   error,
@@ -59,25 +117,26 @@ class PoiDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
 
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
 
                 children: [
                   //categorie
                   Container(
-                    padding: const EdgeInsets.symmetric(
+                    padding:
+                        const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 7,
                     ),
-
                     decoration: BoxDecoration(
                       color: AppColors.accent.withValues(
                         alpha: 0.12,
                       ),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius:
+                          BorderRadius.circular(20),
                     ),
-
                     child: Text(
-                      poi.category,
+                      widget.poi.category,
                       style: const TextStyle(
                         color: AppColors.accent,
                         fontWeight: FontWeight.w600,
@@ -90,12 +149,12 @@ class PoiDetailScreen extends StatelessWidget {
 
                   //nom+note
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
-                          poi.name,
+                          widget.poi.name,
                           style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 28,
@@ -107,15 +166,15 @@ class PoiDetailScreen extends StatelessWidget {
                       const SizedBox(width: 12),
 
                       Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding:
+                            const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 7,
                         ),
-
                         decoration: BoxDecoration(
                           color: AppColors.white,
-                          borderRadius: BorderRadius.circular(12),
-
+                          borderRadius:
+                              BorderRadius.circular(12),
                           boxShadow: const [
                             BoxShadow(
                               color: Color(0x12000000),
@@ -124,7 +183,6 @@ class PoiDetailScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -137,10 +195,12 @@ class PoiDetailScreen extends StatelessWidget {
                             const SizedBox(width: 4),
 
                             Text(
-                              poi.rating.toString(),
+                              widget.poi.rating.toString(),
                               style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
+                                color:
+                                    AppColors.textPrimary,
+                                fontWeight:
+                                    FontWeight.bold,
                               ),
                             ),
                           ],
@@ -153,8 +213,8 @@ class PoiDetailScreen extends StatelessWidget {
 
                   //adresse
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: [
                       const Icon(
                         Icons.location_on_outlined,
@@ -166,7 +226,7 @@ class PoiDetailScreen extends StatelessWidget {
 
                       Expanded(
                         child: Text(
-                          poi.address,
+                          widget.poi.address,
                           style: TextStyle(
                             color: AppColors.grey,
                             fontSize: 15,
@@ -191,7 +251,7 @@ class PoiDetailScreen extends StatelessWidget {
                   const SizedBox(height: 10),
 
                   Text(
-                    poi.description,
+                    widget.poi.description,
                     style: TextStyle(
                       color: AppColors.grey,
                       fontSize: 15,
@@ -201,7 +261,7 @@ class PoiDetailScreen extends StatelessWidget {
 
                   const SizedBox(height: 28),
 
-                  //info
+                  //info pratique
                   const Text(
                     'Informations pratiques',
                     style: TextStyle(
@@ -216,7 +276,7 @@ class PoiDetailScreen extends StatelessWidget {
                   _InfoCard(
                     icon: Icons.location_on_outlined,
                     title: 'Localisation',
-                    value: poi.address,
+                    value: widget.poi.address,
                   ),
 
                   const SizedBox(height: 10),
@@ -224,7 +284,7 @@ class PoiDetailScreen extends StatelessWidget {
                   _InfoCard(
                     icon: Icons.category_outlined,
                     title: 'Catégorie',
-                    value: poi.category,
+                    value: widget.poi.category,
                   ),
 
                   const SizedBox(height: 10),
@@ -232,19 +292,19 @@ class PoiDetailScreen extends StatelessWidget {
                   _InfoCard(
                     icon: Icons.star_outline,
                     title: 'Note',
-                    value: '${poi.rating} / 5',
+                    value: '${widget.poi.rating} / 5',
                   ),
 
                   const SizedBox(height: 30),
-                  
+
+                  //btn "y aller"
                   SizedBox(
                     width: double.infinity,
                     height: 54,
 
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        
-
+                        // Navigation GPS à ajouter plus tard.
                       },
 
                       icon: const Icon(
@@ -260,13 +320,15 @@ class PoiDetailScreen extends StatelessWidget {
                       ),
 
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        foregroundColor: AppColors.white,
-
+                        backgroundColor:
+                            AppColors.accent,
+                        foregroundColor:
+                            AppColors.white,
                         elevation: 3,
-
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                        shape:
+                            RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(24),
                         ),
                       ),
                     ),
@@ -283,7 +345,7 @@ class PoiDetailScreen extends StatelessWidget {
   }
 }
 
-//carte d'info
+//carte info
 class _InfoCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -337,7 +399,8 @@ class _InfoCard extends StatelessWidget {
 
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
 
               children: [
                 Text(
