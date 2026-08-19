@@ -20,7 +20,7 @@ class PoiService {
         .get();
 
     return snapshot.docs
-        .map((doc) => Poi.fromJson(doc.data()))
+        .map((doc) => Poi.fromJson(doc.data(), id: doc.id))
         .toList();
   }
 
@@ -36,7 +36,7 @@ class PoiService {
         .get();
 
     return snapshot.docs
-        .map((doc) => Poi.fromJson(doc.data()))
+        .map((doc) => Poi.fromJson(doc.data(), id: doc.id))
         .toList();
   }
 
@@ -81,7 +81,7 @@ class PoiService {
         .where('isActive', isEqualTo: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Poi.fromJson(doc.data()))
+            .map((doc) => Poi.fromJson(doc.data(), id: doc.id))
             .toList());
   }
 
@@ -92,7 +92,7 @@ class PoiService {
       return null;
     }
 
-    return Poi.fromJson(doc.data()!);
+    return Poi.fromJson(doc.data()!, id: doc.id);
   }
 
   Future<void> addPoi(Poi poi) async {

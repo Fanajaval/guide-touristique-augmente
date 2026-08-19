@@ -33,9 +33,9 @@ class Poi {
 
   String get normalizedCategory => category.trim();
 
-  factory Poi.fromJson(Map<String, dynamic> json) {
+  factory Poi.fromJson(Map<String, dynamic> json, {String? id}) {
     return Poi(
-      id: json['id']?.toString() ?? '',
+      id: json['id']?.toString() ?? id ?? '',
       name: json['name']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
       description: json['description']?.toString() ?? '',

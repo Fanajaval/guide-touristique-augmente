@@ -20,22 +20,40 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
   final FavoritesService _favoritesService =
       FavoritesService.instance;
 
-  bool get _isFavorite {
-    return _favoritesService.isFavorite(widget.poi);
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshFavoriteState();
+  }
+
+  Future<void> _refreshFavoriteState() async {
+    try {
+      await _favoritesService.loadFavorites();
+      if (!mounted) return;
+      final isFavorite = await _favoritesService.isFavorite(widget.poi);
+      setState(() {
+        _isFavorite = isFavorite;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isFavorite = false;
+      });
+    }
   }
 
   Future<void> _toggleFavorite() async {
     try {
       await _favoritesService.toggleFavorite(widget.poi);
+      await _refreshFavoriteState();
 
       if (!mounted) {
         return;
       }
 
-      setState(() {});
-
-      final isFavorite = _favoritesService.isFavorite(widget.poi);
-      final message = isFavorite
+      final message = _isFavorite
           ? '${widget.poi.name} ajouté aux favoris'
           : '${widget.poi.name} retiré des favoris';
 

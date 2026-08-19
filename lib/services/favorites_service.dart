@@ -15,12 +15,12 @@ class FavoritesService {
 
   List<Poi> get favorites => List.unmodifiable(_favorites);
 
-  Future<void> loadFavorites() async {
+  Future<List<Poi>> loadFavorites() async {
     try {
       final userId = await _ensureUserId();
       if (userId == null) {
         _favorites.clear();
-        return;
+        return const [];
       }
 
       final snapshot = await _firestore
@@ -42,51 +42,65 @@ class FavoritesService {
       _favorites
         ..clear()
         ..addAll(loadedFavorites);
+
+      return List.unmodifiable(_favorites);
     } catch (_) {
       _favorites.clear();
       rethrow;
     }
   }
 
-  bool isFavorite(Poi poi) {
-    return _favorites.any(
-      (favorite) => favorite.id == poi.id,
-    );
+  Future<bool> isFavorite(Poi poi) async {
+    try {
+      final userId = await _ensureUserId();
+      if (userId == null) {
+        return false;
+      }
+
+      final doc = await _firestore
+          .collection('favorites')
+          .doc('${userId}_${poi.id}')
+          .get();
+
+      return doc.exists;
+    } catch (_) {
+      return _favorites.any((favorite) => favorite.id == poi.id);
+    }
   }
 
   Future<void> toggleFavorite(Poi poi) async {
     try {
-      if (isFavorite(poi)) {
+      final alreadyFavorite = await isFavorite(poi);
+      if (alreadyFavorite) {
         await removeFavorite(poi);
       } else {
         await addFavorite(poi);
       }
+
+      await loadFavorites();
     } catch (_) {
       rethrow;
     }
   }
 
   Future<void> addFavorite(Poi poi) async {
-    if (isFavorite(poi)) {
+    final currentUser = _auth.currentUser;
+    final resolvedUserId = currentUser?.uid ?? await _ensureUserId();
+    if (resolvedUserId == null || poi.id.isEmpty) {
       return;
     }
 
-    try {
-      _favorites.add(poi);
-      await _saveFavoriteToFirestore(poi);
-    } catch (_) {
-      _favorites.removeWhere((favorite) => favorite.id == poi.id);
-      rethrow;
-    }
+    await _saveFavoriteToFirestore(poi, resolvedUserId);
   }
 
   Future<void> removeFavorite(Poi poi) async {
-    try {
-      _favorites.removeWhere((favorite) => favorite.id == poi.id);
-      await _deleteFavoriteFromFirestore(poi.id);
-    } catch (_) {
-      rethrow;
+    final currentUser = _auth.currentUser;
+    final resolvedUserId = currentUser?.uid ?? await _ensureUserId();
+    if (resolvedUserId == null || poi.id.isEmpty) {
+      return;
     }
+
+    await _deleteFavoriteFromFirestore(poi.id, resolvedUserId);
   }
 
   Future<void> clearFavorites() async {
@@ -118,26 +132,26 @@ class FavoritesService {
     return credential.user?.uid;
   }
 
-  Future<void> _saveFavoriteToFirestore(Poi poi) async {
-    final userId = await _ensureUserId();
-    if (userId == null) {
+  Future<void> _saveFavoriteToFirestore(Poi poi, [String? userId]) async {
+    final resolvedUserId = userId ?? await _ensureUserId();
+    if (resolvedUserId == null) {
       return;
     }
 
-    await _firestore.collection('favorites').doc('${userId}_${poi.id}').set({
-      'userId': userId,
+    await _firestore.collection('favorites').doc('${resolvedUserId}_${poi.id}').set({
+      'userId': resolvedUserId,
       'poiId': poi.id,
       'poi': poi.toJson(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<void> _deleteFavoriteFromFirestore(String poiId) async {
-    final userId = await _ensureUserId();
-    if (userId == null) {
+  Future<void> _deleteFavoriteFromFirestore(String poiId, [String? userId]) async {
+    final resolvedUserId = userId ?? await _ensureUserId();
+    if (resolvedUserId == null) {
       return;
     }
 
-    await _firestore.collection('favorites').doc('${userId}_$poiId').delete();
+    await _firestore.collection('favorites').doc('${resolvedUserId}_$poiId').delete();
   }
 }

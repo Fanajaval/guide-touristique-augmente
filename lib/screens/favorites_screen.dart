@@ -16,13 +16,32 @@ class FavoritesScreen extends StatefulWidget {
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final FavoritesService _favoritesService = FavoritesService.instance;
 
-  List<Poi> get _favoritePois => _favoritesService.favorites;
+  List<Poi> _favoritePois = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _favoritesService.loadFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favoritePois = favorites;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _favoritePois = const [];
+      });
+    }
+  }
 
   Future<void> _toggleFavorite(Poi poi) async {
     await _favoritesService.toggleFavorite(poi);
-    if (mounted) {
-      setState(() {});
-    }
+    await _loadFavorites();
   }
 
   void _openPoiDetail(Poi poi) {
