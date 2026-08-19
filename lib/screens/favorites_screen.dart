@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/poi.dart';
@@ -15,13 +17,23 @@ class FavoritesScreen extends StatefulWidget {
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final FavoritesService _favoritesService = FavoritesService.instance;
+  StreamSubscription<List<Poi>>? _favoritesSubscription;
 
   List<Poi> _favoritePois = const [];
 
   @override
   void initState() {
     super.initState();
-    _loadFavorites();
+    _subscribeToFavorites();
+  }
+
+  void _subscribeToFavorites() {
+    _favoritesSubscription = _favoritesService.favoritesStream().listen((favorites) {
+      if (!mounted) return;
+      setState(() {
+        _favoritePois = favorites;
+      });
+    });
   }
 
   Future<void> _loadFavorites() async {
@@ -42,6 +54,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Future<void> _toggleFavorite(Poi poi) async {
     await _favoritesService.toggleFavorite(poi);
     await _loadFavorites();
+  }
+
+  @override
+  void dispose() {
+    _favoritesSubscription?.cancel();
+    super.dispose();
   }
 
   void _openPoiDetail(Poi poi) {

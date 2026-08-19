@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -14,6 +16,41 @@ class FavoritesService {
   final List<Poi> _favorites = [];
 
   List<Poi> get favorites => List.unmodifiable(_favorites);
+
+  Stream<List<Poi>> favoritesStream() {
+    return _firestore
+        .collection('favorites')
+        .where('userId', isEqualTo: _auth.currentUser?.uid ?? '')
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final userId = await _ensureUserId();
+          if (userId == null) {
+            return const <Poi>[];
+          }
+
+          final userSnapshot = await _firestore
+              .collection('favorites')
+              .where('userId', isEqualTo: userId)
+              .get();
+
+          final favorites = userSnapshot.docs
+              .map((doc) {
+                final poiData = doc.data()['poi'];
+                if (poiData is! Map<String, dynamic>) {
+                  return null;
+                }
+                return Poi.fromJson(Map<String, dynamic>.from(poiData));
+              })
+              .whereType<Poi>()
+              .toList();
+
+          _favorites
+            ..clear()
+            ..addAll(favorites);
+
+          return List.unmodifiable(_favorites);
+        });
+  }
 
   Future<List<Poi>> loadFavorites() async {
     try {
