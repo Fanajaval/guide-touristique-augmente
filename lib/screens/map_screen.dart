@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../services/location_service.dart';
+import '../services/poi_service.dart';
 import '../theme/app_theme.dart';
 
 import '../data/mock_pois.dart';
@@ -68,6 +69,7 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _userPosition;
 
   bool _isLoadingLocation = true;
+  List<Poi> _pois = [];
 
   //position si gps indispo
   final LatLng _initialPosition = const LatLng(
@@ -80,11 +82,30 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    _loadPois();
     //recuperer position actuel
     _loadUserLocation();
 
     //ecoute déplacement_user
     _listenToLocation();
+  }
+
+  Future<void> _loadPois() async {
+    try {
+      final loadedPois = await PoiService.instance.getPois();
+
+      if (!mounted) return;
+
+      setState(() {
+        _pois = loadedPois.isEmpty ? mockPois : loadedPois;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _pois = mockPois;
+      });
+    }
   }
 
   Future<void> _loadUserLocation() async {
@@ -245,7 +266,7 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                   
                 //poi
-                ...mockPois.map(
+                ..._pois.map(
                   (poi) => Marker(
                     point: LatLng(
                       poi.latitude,
@@ -568,30 +589,53 @@ class _PoiBottomSheet extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
 
-              child: Image.asset(
-                poi.imagePath,
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-
-                errorBuilder: (
-                  context,
-                  error,
-                  stackTrace,
-                ) {
-                  return Container(
-                    height: 180,
-                    color: AppColors.background,
-
-                    child: const Center(
-                      child: Icon(
-                        Icons.image_not_supported_outlined,
-                        size: 48,
-                      ),
+              child: poi.displayImage.startsWith('http')
+                  ? Image.network(
+                      poi.displayImage,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (
+                        context,
+                        error,
+                        stackTrace,
+                      ) {
+                        return Container(
+                          height: 180,
+                          color: AppColors.background,
+                          child: const Center(
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 48,
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : Image.asset(
+                      poi.displayImage.isEmpty
+                          ? 'assets/images/pois/rova.jpg'
+                          : poi.displayImage,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (
+                        context,
+                        error,
+                        stackTrace,
+                      ) {
+                        return Container(
+                          height: 180,
+                          color: AppColors.background,
+                          child: const Center(
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 48,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
 
             const SizedBox(height: 16),

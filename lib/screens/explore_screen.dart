@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/mock_pois.dart';
 import '../models/poi.dart';
+import '../services/poi_service.dart';
 import '../theme/app_theme.dart';
 import 'poi_detail_screen.dart';
 
@@ -18,6 +19,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   String _selectedCategory = 'Tous';
   String _searchQuery = '';
+  bool _isLoadingPois = true;
+  List<Poi> _allPois = [];
 
   final List<String> _categories = [
     'Tous',
@@ -32,12 +35,33 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   void initState() {
     super.initState();
+    _loadPois();
 
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase().trim();
       });
     });
+  }
+
+  Future<void> _loadPois() async {
+    try {
+      final loadedPois = await PoiService.instance.getPois();
+
+      if (!mounted) return;
+
+      setState(() {
+        _allPois = loadedPois.isEmpty ? mockPois : loadedPois;
+        _isLoadingPois = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _allPois = mockPois;
+        _isLoadingPois = false;
+      });
+    }
   }
 
   @override
@@ -47,7 +71,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   List<Poi> get _filteredPois {
-    return mockPois.where((poi) {
+    return _allPois.where((poi) {
       final matchesCategory =
           _selectedCategory == 'Tous' ||
           poi.category.toLowerCase() ==
@@ -100,52 +124,54 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ),
       ),
 
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              16,
-              4,
-              16,
-              12,
-            ),
-            child: _buildSearchBar(),
-          ),
-
-          //categorie
-          _buildCategories(),
-
-          const SizedBox(height: 16),
-
-          //resultat
-          Expanded(
-            child: pois.isEmpty
-                ? _buildEmptyState()
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(
-                      16,
-                      0,
-                      16,
-                      24,
-                    ),
-
-                    itemCount: pois.length,
-
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 14),
-
-                    itemBuilder: (context, index) {
-                      final poi = pois[index];
-
-                      return _PoiCard(
-                        poi: poi,
-                        onTap: () => _openPoiDetail(poi),
-                      );
-                    },
+      body: _isLoadingPois
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    16,
+                    4,
+                    16,
+                    12,
                   ),
-          ),
-        ],
-      ),
+                  child: _buildSearchBar(),
+                ),
+
+                _buildCategories(),
+
+                const SizedBox(height: 16),
+
+                Expanded(
+                  child: pois.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(
+                            16,
+                            0,
+                            16,
+                            24,
+                          ),
+
+                          itemCount: pois.length,
+
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 14),
+
+                          itemBuilder: (context, index) {
+                            final poi = pois[index];
+
+                            return _PoiCard(
+                              poi: poi,
+                              onTap: () => _openPoiDetail(poi),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -373,33 +399,53 @@ class _PoiCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
 
-                child: Image.asset(
-                  poi.imagePath,
-
-                  width: 105,
-                  height: 105,
-
-                  fit: BoxFit.cover,
-
-                  errorBuilder: (
-                    context,
-                    error,
-                    stackTrace,
-                  ) {
-                    return Container(
+                child: poi.displayImage.startsWith('http')
+                  ? Image.network(
+                      poi.displayImage,
                       width: 105,
                       height: 105,
-
-                      color: AppColors.background,
-
-                      child: const Icon(
-                        Icons.image_not_supported_outlined,
-                        color: AppColors.grey,
-                        size: 32,
-                      ),
-                    );
-                  },
-                ),
+                      fit: BoxFit.cover,
+                      errorBuilder: (
+                        context,
+                        error,
+                        stackTrace,
+                      ) {
+                        return Container(
+                          width: 105,
+                          height: 105,
+                          color: AppColors.background,
+                          child: const Icon(
+                            Icons.image_not_supported_outlined,
+                            color: AppColors.grey,
+                            size: 32,
+                          ),
+                        );
+                      },
+                    )
+                  : Image.asset(
+                      poi.displayImage.isEmpty
+                          ? 'assets/images/pois/rova.jpg'
+                          : poi.displayImage,
+                      width: 105,
+                      height: 105,
+                      fit: BoxFit.cover,
+                      errorBuilder: (
+                        context,
+                        error,
+                        stackTrace,
+                      ) {
+                        return Container(
+                          width: 105,
+                          height: 105,
+                          color: AppColors.background,
+                          child: const Icon(
+                            Icons.image_not_supported_outlined,
+                            color: AppColors.grey,
+                            size: 32,
+                          ),
+                        );
+                      },
+                    ),
               ),
 
               const SizedBox(width: 12),
