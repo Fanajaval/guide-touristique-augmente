@@ -26,23 +26,34 @@ class _MapScreenState extends State<MapScreen> {
   final LocationService _locationService = LocationService();
 
   IconData _getPoiIcon(String category) {
-    switch (category.toLowerCase()) {
+    final normalized = category
+        .trim()
+        .toLowerCase()
+        .replaceAll('é', 'e')
+        .replaceAll('è', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('ô', 'o')
+        .replaceAll('à', 'a')
+        .replaceAll('ç', 'c')
+        .replaceAll(' ', '');
+
+    switch (normalized) {
       case 'monument':
         return Icons.account_balance;
 
       case 'nature':
         return Icons.park;
 
-      case 'musée':
+      case 'musee':
         return Icons.museum;
 
-      case 'marché':
+      case 'marche':
         return Icons.storefront;
 
       case 'restaurant':
         return Icons.restaurant;
 
-      case 'hôtel':
+      case 'hotel':
         return Icons.hotel;
 
       default:

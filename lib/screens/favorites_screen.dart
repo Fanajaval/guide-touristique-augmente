@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_pois.dart';
 import '../models/poi.dart';
+import '../services/favorites_service.dart';
 import '../theme/app_theme.dart';
+import 'explore_screen.dart';
 import 'poi_detail_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -13,29 +14,15 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  
+  final FavoritesService _favoritesService = FavoritesService.instance;
 
-  //plus tard, cette liste viendra de Firebase
+  List<Poi> get _favoritePois => _favoritesService.favorites;
 
-  final Set<String> _favoriteIds = {
-    'poi_001',
-    'poi_003',
-  };
-
-  List<Poi> get _favoritePois {
-    return mockPois
-        .where((poi) => _favoriteIds.contains(poi.id))
-        .toList();
-  }
-
-  void _toggleFavorite(Poi poi) {
-    setState(() {
-      if (_favoriteIds.contains(poi.id)) {
-        _favoriteIds.remove(poi.id);
-      } else {
-        _favoriteIds.add(poi.id);
-      }
-    });
+  Future<void> _toggleFavorite(Poi poi) async {
+    await _favoritesService.toggleFavorite(poi);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _openPoiDetail(Poi poi) {
@@ -83,7 +70,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 return _FavoritePoiCard(
                   poi: poi,
                   onTap: () => _openPoiDetail(poi),
-                  onFavoritePressed: () => _toggleFavorite(poi),
+                  onFavoritePressed: () async => _toggleFavorite(poi),
                 );
               },
             ),
@@ -142,7 +129,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
             ElevatedButton.icon(
               onPressed: () {
-                // navigation vers Explorer ajouté lorsque nous gérerons cette action
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ExploreScreen(),
+                  ),
+                );
               },
               icon: const Icon(Icons.explore_outlined),
               label: const Text('Explorer les lieux'),

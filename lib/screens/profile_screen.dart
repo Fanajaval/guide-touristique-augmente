@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'favorites_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -57,7 +58,12 @@ class ProfileScreen extends StatelessWidget {
                 title: 'Mes favoris',
                 subtitle: 'Retrouvez vos lieux préférés',
                 onTap: () {
-                  //navigation vers favoris à ajouter
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FavoritesScreen(),
+                    ),
+                  );
                 },
               ),
 

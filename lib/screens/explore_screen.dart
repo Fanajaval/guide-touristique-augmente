@@ -32,6 +32,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
     'Hôtel',
   ];
 
+  String _normalizeCategory(String category) {
+    return category
+        .trim()
+        .toLowerCase()
+        .replaceAll('é', 'e')
+        .replaceAll('è', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('ô', 'o')
+        .replaceAll('à', 'a')
+        .replaceAll('ç', 'c')
+        .replaceAll(' ', '');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -72,15 +85,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   List<Poi> get _filteredPois {
     return _allPois.where((poi) {
+      final selectedCategory = _normalizeCategory(_selectedCategory);
+      final poiCategory = _normalizeCategory(poi.category);
+
       final matchesCategory =
           _selectedCategory == 'Tous' ||
-          poi.category.toLowerCase() ==
-              _selectedCategory.toLowerCase();
+          poiCategory == selectedCategory;
 
       final matchesSearch =
           _searchQuery.isEmpty ||
           poi.name.toLowerCase().contains(_searchQuery) ||
-          poi.category.toLowerCase().contains(_searchQuery) ||
+          poiCategory.contains(_searchQuery) ||
           poi.address.toLowerCase().contains(_searchQuery);
 
       return matchesCategory && matchesSearch;

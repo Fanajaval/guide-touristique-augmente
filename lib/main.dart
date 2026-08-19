@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'screens/main_screen.dart';
+import 'services/favorites_service.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -11,6 +12,12 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  try {
+    await FavoritesService.instance.loadFavorites();
+  } catch (_) {
+    // La persistance des favoris est optionnelle au démarrage.
+  }
 
   runApp(const MadaGuideApp());
 }

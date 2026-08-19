@@ -24,22 +24,43 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
     return _favoritesService.isFavorite(widget.poi);
   }
 
-  void _toggleFavorite() {
-    setState(() {
-      _favoritesService.toggleFavorite(widget.poi);
-    });
+  Future<void> _toggleFavorite() async {
+    try {
+      await _favoritesService.toggleFavorite(widget.poi);
 
-    final message = _isFavorite
-        ? '${widget.poi.name} ajouté aux favoris'
-        : '${widget.poi.name} retiré des favoris';
+      if (!mounted) {
+        return;
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      setState(() {});
+
+      final isFavorite = _favoritesService.isFavorite(widget.poi);
+      final message = isFavorite
+          ? '${widget.poi.name} ajouté aux favoris'
+          : '${widget.poi.name} retiré des favoris';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Impossible de mettre à jour les favoris. Vérifie les règles Firebase et l’authentification.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
