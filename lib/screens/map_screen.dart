@@ -67,9 +67,7 @@ class _MapScreenState extends State<MapScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return _PoiBottomSheet(
-          poi: poi,
-        );
+        return _PoiBottomSheet(poi: poi);
       },
     );
   }
@@ -83,10 +81,7 @@ class _MapScreenState extends State<MapScreen> {
   List<Poi> _pois = [];
 
   //position si gps indispo
-  final LatLng _initialPosition = const LatLng(
-    -18.8792,
-    47.5079,
-  );
+  final LatLng _initialPosition = const LatLng(-18.8792, 47.5079);
 
   double _currentZoom = 13.0;
 
@@ -125,10 +120,7 @@ class _MapScreenState extends State<MapScreen> {
     if (!mounted) return;
 
     if (position != null) {
-      final userPosition = LatLng(
-        position.latitude,
-        position.longitude,
-      );
+      final userPosition = LatLng(position.latitude, position.longitude);
 
       setState(() {
         _userPosition = userPosition;
@@ -136,10 +128,7 @@ class _MapScreenState extends State<MapScreen> {
         _currentZoom = 15.0;
       });
 
-      _mapController.move(
-        userPosition,
-        15,
-      );
+      _mapController.move(userPosition, 15);
     } else {
       //gps indispo ou permission refusé
       setState(() {
@@ -147,21 +136,18 @@ class _MapScreenState extends State<MapScreen> {
       });
     }
   }
-//suivi position user
-  void _listenToLocation() {
-    _positionSubscription =
-        _locationService.getPositionStream().listen(
-      (position) {
-        if (!mounted) return;
 
-        setState(() {
-          _userPosition = LatLng(
-            position.latitude,
-            position.longitude,
-          );
-        });
-      },
-    );
+  //suivi position user
+  void _listenToLocation() {
+    _positionSubscription = _locationService.getPositionStream().listen((
+      position,
+    ) {
+      if (!mounted) return;
+
+      setState(() {
+        _userPosition = LatLng(position.latitude, position.longitude);
+      });
+    });
   }
 
   void _zoomIn() {
@@ -171,10 +157,7 @@ class _MapScreenState extends State<MapScreen> {
       _currentZoom = (_currentZoom + 1).clamp(5.0, 18.0);
     });
 
-    _mapController.move(
-      center,
-      _currentZoom,
-    );
+    _mapController.move(center, _currentZoom);
   }
 
   void _zoomOut() {
@@ -184,10 +167,7 @@ class _MapScreenState extends State<MapScreen> {
       _currentZoom = (_currentZoom - 1).clamp(5.0, 18.0);
     });
 
-    _mapController.move(
-      center,
-      _currentZoom,
-    );
+    _mapController.move(center, _currentZoom);
   }
 
   void _recenterMap() {
@@ -199,10 +179,7 @@ class _MapScreenState extends State<MapScreen> {
       _currentZoom = 15.0;
     });
 
-    _mapController.move(
-      _userPosition!,
-      _currentZoom,
-    );
+    _mapController.move(_userPosition!, _currentZoom);
   }
 
   @override
@@ -231,13 +208,11 @@ class _MapScreenState extends State<MapScreen> {
 
           children: [
             TileLayer(
-              urlTemplate:
-                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName:
-                  'com.example.guide_touristique_augmente',
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.guide_touristique_augmente',
             ),
- 
-          //position utilisateur
+
+            //position utilisateur
             MarkerLayer(
               markers: [
                 if (_userPosition != null)
@@ -247,9 +222,7 @@ class _MapScreenState extends State<MapScreen> {
                     height: 56,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(
-                          alpha: 0.15,
-                        ),
+                        color: AppColors.primary.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -275,14 +248,11 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                   ),
-                  
+
                 //poi
                 ..._pois.map(
                   (poi) => Marker(
-                    point: LatLng(
-                      poi.latitude,
-                      poi.longitude,
-                    ),
+                    point: LatLng(poi.latitude, poi.longitude),
                     width: 50,
                     height: 60,
 
@@ -349,24 +319,17 @@ class _MapScreenState extends State<MapScreen> {
               child: Card(
                 elevation: 4,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                       SizedBox(width: 10),
-                      Text(
-                        'Localisation en cours...',
-                      ),
+                      Text('Localisation en cours...'),
                     ],
                   ),
                 ),
@@ -374,24 +337,11 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-        Positioned(
-          top: 16,
-          left: 16,
-          right: 16,
-          child: _buildSearchBar(),
-        ),
+        Positioned(top: 16, left: 16, right: 16, child: _buildSearchBar()),
 
-        Positioned(
-          right: 16,
-          top: 100,
-          child: _buildMapControls(),
-        ),
+        Positioned(right: 16, top: 100, child: _buildMapControls()),
 
-        Positioned(
-          left: 16,
-          bottom: 90,
-          child: _buildMapInfo(),
-        ),
+        Positioned(left: 16, bottom: 90, child: _buildMapInfo()),
       ],
     );
   }
@@ -405,9 +355,7 @@ class _MapScreenState extends State<MapScreen> {
       child: Container(
         height: 52,
 
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
 
         decoration: BoxDecoration(
           color: AppColors.white,
@@ -416,27 +364,18 @@ class _MapScreenState extends State<MapScreen> {
 
         child: Row(
           children: [
-            const Icon(
-              Icons.search,
-              color: AppColors.primary,
-            ),
+            const Icon(Icons.search, color: AppColors.primary),
 
             const SizedBox(width: 12),
 
             Expanded(
               child: Text(
                 'Rechercher un lieu...',
-                style: TextStyle(
-                  color: AppColors.grey,
-                  fontSize: 15,
-                ),
+                style: TextStyle(color: AppColors.grey, fontSize: 15),
               ),
             ),
 
-            const Icon(
-              Icons.tune,
-              color: AppColors.primary,
-            ),
+            const Icon(Icons.tune, color: AppColors.primary),
           ],
         ),
       ),
@@ -447,42 +386,28 @@ class _MapScreenState extends State<MapScreen> {
     return Column(
       children: [
         // Zoom +
-        _MapButton(
-          icon: Icons.add,
-          onPressed: _zoomIn,
-        ),
+        _MapButton(icon: Icons.add, onPressed: _zoomIn),
 
         const SizedBox(height: 8),
 
         //zoom
-        _MapButton(
-          icon: Icons.remove,
-          onPressed: _zoomOut,
-        ),
+        _MapButton(icon: Icons.remove, onPressed: _zoomOut),
 
         const SizedBox(height: 8),
 
         //position actuel
-        _MapButton(
-          icon: Icons.my_location,
-          onPressed: _recenterMap,
-        ),
+        _MapButton(icon: Icons.my_location, onPressed: _recenterMap),
       ],
     );
   }
 
-//info carte
+  //info carte
   Widget _buildMapInfo() {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
 
       decoration: BoxDecoration(
-        color: AppColors.white.withValues(
-          alpha: 0.95,
-        ),
+        color: AppColors.white.withValues(alpha: 0.95),
 
         borderRadius: BorderRadius.circular(20),
 
@@ -499,11 +424,7 @@ class _MapScreenState extends State<MapScreen> {
         mainAxisSize: MainAxisSize.min,
 
         children: [
-          Icon(
-            Icons.explore,
-            color: AppColors.accent,
-            size: 20,
-          ),
+          Icon(Icons.explore, color: AppColors.accent, size: 20),
 
           SizedBox(width: 8),
 
@@ -525,10 +446,7 @@ class _MapButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
 
-  const _MapButton({
-    required this.icon,
-    required this.onPressed,
-  });
+  const _MapButton({required this.icon, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -545,11 +463,7 @@ class _MapButton extends StatelessWidget {
           width: 48,
           height: 48,
 
-          child: Icon(
-            icon,
-            color: AppColors.primary,
-            size: 22,
-          ),
+          child: Icon(icon, color: AppColors.primary, size: 22),
         ),
       ),
     );
@@ -559,18 +473,14 @@ class _MapButton extends StatelessWidget {
 class _PoiBottomSheet extends StatelessWidget {
   final Poi poi;
 
-  const _PoiBottomSheet({
-    required this.poi,
-  });
+  const _PoiBottomSheet({required this.poi});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(28),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
 
       padding: const EdgeInsets.all(16),
@@ -587,9 +497,7 @@ class _PoiBottomSheet extends StatelessWidget {
                 height: 4,
 
                 decoration: BoxDecoration(
-                  color: AppColors.grey.withValues(
-                    alpha: 0.4,
-                  ),
+                  color: AppColors.grey.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -606,11 +514,7 @@ class _PoiBottomSheet extends StatelessWidget {
                       height: 180,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (
-                        context,
-                        error,
-                        stackTrace,
-                      ) {
+                      errorBuilder: (context, error, stackTrace) {
                         return Container(
                           height: 180,
                           color: AppColors.background,
@@ -630,11 +534,7 @@ class _PoiBottomSheet extends StatelessWidget {
                       height: 180,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (
-                        context,
-                        error,
-                        stackTrace,
-                      ) {
+                      errorBuilder: (context, error, stackTrace) {
                         return Container(
                           height: 180,
                           color: AppColors.background,
@@ -652,15 +552,10 @@ class _PoiBottomSheet extends StatelessWidget {
             const SizedBox(height: 16),
             //categorie
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
 
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(
-                  alpha: 0.12,
-                ),
+                color: AppColors.accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
 
@@ -695,19 +590,13 @@ class _PoiBottomSheet extends StatelessWidget {
 
                 Row(
                   children: [
-                    const Icon(
-                      Icons.star,
-                      color: AppColors.accent,
-                      size: 20,
-                    ),
+                    const Icon(Icons.star, color: AppColors.accent, size: 20),
 
                     const SizedBox(width: 4),
 
                     Text(
                       poi.rating.toString(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -729,9 +618,7 @@ class _PoiBottomSheet extends StatelessWidget {
                 Expanded(
                   child: Text(
                     poi.address,
-                    style: TextStyle(
-                      color: AppColors.grey,
-                    ),
+                    style: TextStyle(color: AppColors.grey),
                   ),
                 ),
               ],
@@ -744,10 +631,7 @@ class _PoiBottomSheet extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
 
-              style: TextStyle(
-                color: AppColors.grey,
-                height: 1.4,
-              ),
+              style: TextStyle(color: AppColors.grey, height: 1.4),
             ),
 
             const SizedBox(height: 18),
@@ -759,25 +643,18 @@ class _PoiBottomSheet extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(context);
-                  
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PoiDetailScreen(
-                        poi: poi,
-                      ),
+                      builder: (context) => PoiDetailScreen(poi: poi),
                     ),
                   );
-
                 },
 
-                icon: const Icon(
-                  Icons.explore,
-                ),
+                icon: const Icon(Icons.explore),
 
-                label: const Text(
-                  'Explorer ce lieu',
-                ),
+                label: const Text('Explorer ce lieu'),
 
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
@@ -799,15 +676,10 @@ class _PoiBottomSheet extends StatelessWidget {
 class _MarkerPointerPainter extends CustomPainter {
   final Color color;
 
-  _MarkerPointerPainter({
-    required this.color,
-  });
+  _MarkerPointerPainter({required this.color});
 
   @override
-  void paint(
-    Canvas canvas,
-    Size size,
-  ) {
+  void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
@@ -819,17 +691,11 @@ class _MarkerPointerPainter extends CustomPainter {
     path.lineTo(size.width / 2, size.height);
     path.close();
 
-    canvas.drawPath(
-      path,
-      paint,
-    );
+    canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(
-    covariant _MarkerPointerPainter oldDelegate,
-  ) {
+  bool shouldRepaint(covariant _MarkerPointerPainter oldDelegate) {
     return oldDelegate.color != color;
   }
 }
-

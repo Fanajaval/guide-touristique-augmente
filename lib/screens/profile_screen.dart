@@ -13,12 +13,7 @@ class ProfileScreen extends StatelessWidget {
 
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            100,
-          ),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,14 +163,10 @@ class ProfileScreen extends StatelessWidget {
             height: 72,
 
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(
-                alpha: 0.10,
-              ),
+              color: AppColors.primary.withValues(alpha: 0.10),
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.primary.withValues(
-                  alpha: 0.20,
-                ),
+                color: AppColors.primary.withValues(alpha: 0.20),
                 width: 2,
               ),
             ),
@@ -207,10 +198,7 @@ class ProfileScreen extends StatelessWidget {
 
                 Text(
                   'Bienvenue sur MadaGuide',
-                  style: TextStyle(
-                    color: AppColors.grey,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: AppColors.grey, fontSize: 13),
                 ),
               ],
             ),
@@ -248,10 +236,7 @@ class ProfileScreen extends StatelessWidget {
           // Déconnexion Firebase à ajouter plus tard.
         },
 
-        icon: const Icon(
-          Icons.logout_rounded,
-          color: AppColors.error,
-        ),
+        icon: const Icon(Icons.logout_rounded, color: AppColors.error),
 
         label: const Text(
           'Se déconnecter',
@@ -263,11 +248,7 @@ class ProfileScreen extends StatelessWidget {
         ),
 
         style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: AppColors.error.withValues(
-              alpha: 0.35,
-            ),
-          ),
+          side: BorderSide(color: AppColors.error.withValues(alpha: 0.35)),
 
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
@@ -348,17 +329,11 @@ class _ProfileMenuItem extends StatelessWidget {
                 height: 46,
 
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(
-                    alpha: 0.10,
-                  ),
+                  color: iconColor.withValues(alpha: 0.10),
                   shape: BoxShape.circle,
                 ),
 
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 22,
-                ),
+                child: Icon(icon, color: iconColor, size: 22),
               ),
 
               const SizedBox(width: 14),
@@ -366,8 +341,7 @@ class _ProfileMenuItem extends StatelessWidget {
               //texte
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
                     Text(

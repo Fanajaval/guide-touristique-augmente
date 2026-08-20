@@ -175,20 +175,29 @@ class FavoritesService {
       return;
     }
 
-    await _firestore.collection('favorites').doc('${resolvedUserId}_${poi.id}').set({
-      'userId': resolvedUserId,
-      'poiId': poi.id,
-      'poi': poi.toJson(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    await _firestore
+        .collection('favorites')
+        .doc('${resolvedUserId}_${poi.id}')
+        .set({
+          'userId': resolvedUserId,
+          'poiId': poi.id,
+          'poi': poi.toJson(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
   }
 
-  Future<void> _deleteFavoriteFromFirestore(String poiId, [String? userId]) async {
+  Future<void> _deleteFavoriteFromFirestore(
+    String poiId, [
+    String? userId,
+  ]) async {
     final resolvedUserId = userId ?? await _ensureUserId();
     if (resolvedUserId == null) {
       return;
     }
 
-    await _firestore.collection('favorites').doc('${resolvedUserId}_$poiId').delete();
+    await _firestore
+        .collection('favorites')
+        .doc('${resolvedUserId}_$poiId')
+        .delete();
   }
 }
