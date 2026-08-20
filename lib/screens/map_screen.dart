@@ -85,6 +85,8 @@ class _MapScreenState extends State<MapScreen> {
   List<Poi> _pois = [];
   String _searchQuery = '';
   String _selectedCategory = 'Tous';
+  bool _showNearbyOnly = false;
+  double _nearbyRadiusInKm = 5.0;
   Timer? _locationSearchTimer;
   List<_MapLocationResult> _locationResults = [];
   bool _isSearchingLocations = false;
@@ -115,15 +117,163 @@ class _MapScreenState extends State<MapScreen> {
         .replaceAll('û', 'u');
   }
 
-  List<Poi> get _visiblePois {
+    List<Poi> get _visiblePois {
     final category = _normalizeSearchText(_selectedCategory);
+    final userPosition = _userPosition;
 
-    return _pois.where((poi) {
+    final pois = _pois.where((poi) {
       final matchesCategory =
           _selectedCategory == 'Tous' ||
           _normalizeSearchText(poi.category) == category;
-      return matchesCategory;
+
+      if (!matchesCategory) {
+        return false;
+      }
+
+      if (!_showNearbyOnly) {
+        return true;
+      }
+
+      if (userPosition == null) {
+        return false;
+      }
+
+      final distance = PoiService.instance.distanceInKm(
+        userPosition.latitude,
+        userPosition.longitude,
+        poi.latitude,
+        poi.longitude,
+      );
+
+      return distance <= _nearbyRadiusInKm;
     }).toList();
+
+    if (userPosition != null) {
+      pois.sort((a, b) {
+        final distanceA = PoiService.instance.distanceInKm(
+          userPosition.latitude,
+          userPosition.longitude,
+          a.latitude,
+          a.longitude,
+        );
+
+        final distanceB = PoiService.instance.distanceInKm(
+          userPosition.latitude,
+          userPosition.longitude,
+          b.latitude,
+          b.longitude,
+        );
+
+        return distanceA.compareTo(distanceB);
+      });
+    }
+
+    return pois;
+  }
+
+  String _formatRadius(double radius) {
+    if (radius == radius.roundToDouble()) {
+      return '${radius.round()} km';
+    }
+
+    return '${radius.toStringAsFixed(1)} km';
+  }
+
+  void _toggleNearbyPois() {
+    if (_userPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Position actuelle indisponible. Activez la localisation.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _showNearbyOnly = !_showNearbyOnly;
+    });
+  }
+
+  void _setNearbyRadius(double radius) {
+    if (_userPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Position actuelle indisponible. Activez la localisation.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _nearbyRadiusInKm = radius;
+      _showNearbyOnly = true;
+    });
+  }
+
+    Future<void> _openNearbyRadiusPicker() async {
+    if (_userPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Position actuelle indisponible. Activez la localisation.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    const radiuses = [1.0, 3.0, 5.0, 10.0, 20.0];
+
+    final selectedRadius = await showModalBottomSheet<double>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ListTile(
+                title: Text(
+                  'Rayon de recherche',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  'Afficher les POI autour de votre position',
+                ),
+              ),
+
+              ...radiuses.map((radius) {
+                final isSelected = radius == _nearbyRadiusInKm;
+
+                return ListTile(
+                  leading: Icon(
+                    isSelected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color: AppColors.primary,
+                  ),
+                  title: Text(
+                    'Moins de ${_formatRadius(radius)}',
+                  ),
+                  onTap: () => Navigator.pop(context, radius),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (!mounted || selectedRadius == null) {
+      return;
+    }
+
+    _setNearbyRadius(selectedRadius);
   }
 
   void _searchLocations(String value) {
@@ -663,6 +813,16 @@ class _MapScreenState extends State<MapScreen> {
           child: _buildMapInfo(),
         ),
 
+        if (_showNearbyOnly &&
+            _locationResults.isEmpty &&
+            !_isSearchingLocations)
+          Positioned(
+            top: 78,
+            left: 16,
+            right: 82,
+            child: _buildNearbyFilterInfo(),
+          ),
+
         if (_routePoints.isNotEmpty || _isLoadingRoute)
           Positioned(
             left: 16,
@@ -800,6 +960,64 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+    Widget _buildNearbyFilterInfo() {
+    final count = _visiblePois.length;
+
+    return Material(
+      elevation: 4,
+      borderRadius: BorderRadius.circular(18),
+      color: AppColors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 8,
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.near_me,
+              color: AppColors.primary,
+              size: 20,
+            ),
+
+            const SizedBox(width: 8),
+
+            Expanded(
+              child: Text(
+                '$count POI à moins de ${_formatRadius(_nearbyRadiusInKm)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+
+            TextButton(
+              onPressed: _openNearbyRadiusPicker,
+              child: const Text('Rayon'),
+            ),
+
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _showNearbyOnly = false;
+                });
+              },
+              tooltip: 'Désactiver le filtre proche',
+              icon: const Icon(
+                Icons.close,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMapControls() {
     return Column(
       children: [
@@ -882,40 +1100,69 @@ class _MapScreenState extends State<MapScreen> {
   }
 
 //info carte
-  Widget _buildMapInfo() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    Widget _buildMapInfo() {
+    final count = _visiblePois.length;
 
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.95),
+    final text = _showNearbyOnly
+        ? '$count POI à moins de ${_formatRadius(_nearbyRadiusInKm)}'
+        : 'Explorez autour de vous';
 
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _toggleNearbyPois,
+        onLongPress: _openNearbyRadiusPicker,
         borderRadius: BorderRadius.circular(20),
-
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x18000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 10,
           ),
-        ],
-      ),
 
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
+          decoration: BoxDecoration(
+            color: _showNearbyOnly
+                ? AppColors.primary.withValues(alpha: 0.95)
+                : AppColors.white.withValues(alpha: 0.95),
 
-        children: [
-          Icon(Icons.explore, color: AppColors.accent, size: 20),
+            borderRadius: BorderRadius.circular(20),
 
-          SizedBox(width: 8),
-
-          Text(
-            'Explorez autour de vous',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x18000000),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-        ],
+
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+
+            children: [
+              Icon(
+                _showNearbyOnly
+                    ? Icons.near_me
+                    : Icons.explore,
+                color: _showNearbyOnly
+                    ? AppColors.white
+                    : AppColors.accent,
+                size: 20,
+              ),
+
+              const SizedBox(width: 8),
+
+              Text(
+                text,
+                style: TextStyle(
+                  color: _showNearbyOnly
+                      ? AppColors.white
+                      : AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
