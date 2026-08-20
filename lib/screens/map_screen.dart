@@ -24,6 +24,8 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   final LocationService _locationService = LocationService();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   IconData _getPoiIcon(String category) {
     final normalized = category
@@ -81,6 +83,8 @@ class _MapScreenState extends State<MapScreen> {
 
   bool _isLoadingLocation = true;
   List<Poi> _pois = [];
+  String _searchQuery = '';
+  String _selectedCategory = 'Tous';
 
   //position si gps indispo
   final LatLng _initialPosition = const LatLng(
@@ -89,6 +93,81 @@ class _MapScreenState extends State<MapScreen> {
   );
 
   double _currentZoom = 13.0;
+
+  String _normalizeSearchText(String text) {
+    return text
+        .trim()
+        .toLowerCase()
+        .replaceAll('é', 'e')
+        .replaceAll('è', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('ô', 'o')
+        .replaceAll('à', 'a')
+        .replaceAll('ç', 'c')
+        .replaceAll('ù', 'u')
+        .replaceAll('û', 'u');
+  }
+
+  List<Poi> get _visiblePois {
+    final query = _normalizeSearchText(_searchQuery);
+    final category = _normalizeSearchText(_selectedCategory);
+
+    return _pois.where((poi) {
+      final matchesCategory =
+          _selectedCategory == 'Tous' ||
+          _normalizeSearchText(poi.category) == category;
+      final matchesSearch =
+          query.isEmpty ||
+          _normalizeSearchText(poi.name).contains(query) ||
+          _normalizeSearchText(poi.address).contains(query) ||
+          _normalizeSearchText(poi.category).contains(query);
+
+      return matchesCategory && matchesSearch;
+    }).toList();
+  }
+
+  Future<void> _openCategoryFilter() async {
+    const categories = [
+      'Tous',
+      'Monument',
+      'Nature',
+      'Musée',
+      'Marché',
+      'Restaurant',
+      'Hôtel',
+    ];
+
+    final selectedCategory = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: categories.map((category) {
+              return ListTile(
+                leading: Icon(
+                  category == _selectedCategory
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  color: AppColors.primary,
+                ),
+                title: Text(category),
+                onTap: () => Navigator.pop(context, category),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || selectedCategory == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedCategory = selectedCategory;
+    });
+  }
 
   @override
   void initState() {
@@ -209,6 +288,8 @@ class _MapScreenState extends State<MapScreen> {
   void dispose() {
     _positionSubscription?.cancel();
     _mapController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
 
     super.dispose();
   }
@@ -277,7 +358,7 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                   
                 //poi
-                ..._pois.map(
+                ..._visiblePois.map(
                   (poi) => Marker(
                     point: LatLng(
                       poi.latitude,
@@ -416,27 +497,59 @@ class _MapScreenState extends State<MapScreen> {
 
         child: Row(
           children: [
-            const Icon(
-              Icons.search,
-              color: AppColors.primary,
+            const SizedBox(
+              width: 24,
+              child: Icon(
+                Icons.search,
+                color: AppColors.primary,
+              ),
             ),
 
             const SizedBox(width: 12),
 
             Expanded(
-              child: Text(
-                'Rechercher un lieu...',
-                style: TextStyle(
-                  color: AppColors.grey,
-                  fontSize: 15,
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Rechercher un lieu...',
+                  hintStyle: TextStyle(
+                    color: AppColors.grey,
+                    fontSize: 15,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
                 ),
               ),
             ),
 
-            const Icon(
-              Icons.tune,
-              color: AppColors.primary,
-            ),
+            _searchQuery.isNotEmpty
+                ? IconButton(
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                    tooltip: 'Effacer la recherche',
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.grey,
+                    ),
+                  )
+                : IconButton(
+                    onPressed: _openCategoryFilter,
+                    tooltip: 'Filtrer les lieux',
+                    icon: const Icon(
+                      Icons.tune,
+                      color: AppColors.primary,
+                    ),
+                  ),
           ],
         ),
       ),
