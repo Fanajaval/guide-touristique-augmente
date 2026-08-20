@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../data/mock_pois.dart';
 import '../models/poi.dart';
 
 class PoiService {
@@ -97,6 +98,25 @@ class PoiService {
 
   Future<void> addPoi(Poi poi) async {
     await _poisRef.doc(poi.id).set(poi.toJson());
+  }
+
+  Future<void> bulkImportPois(List<Poi> pois) async {
+    if (pois.isEmpty) {
+      return;
+    }
+
+    final batch = _firestore.batch();
+
+    for (final poi in pois) {
+      final docRef = _poisRef.doc(poi.id);
+      batch.set(docRef, poi.toJson());
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> importMockPoisOnce() async {
+    await bulkImportPois(mockPois);
   }
 
   Future<void> updatePoi(Poi poi) async {
