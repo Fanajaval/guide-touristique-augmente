@@ -16,9 +16,7 @@ class PoiService {
       _firestore.collection('pois');
 
   Future<List<Poi>> getPois() async {
-    final snapshot = await _poisRef
-        .where('isActive', isEqualTo: true)
-        .get();
+    final snapshot = await _poisRef.where('isActive', isEqualTo: true).get();
 
     return snapshot.docs
         .map((doc) => Poi.fromJson(doc.data(), id: doc.id))
@@ -81,9 +79,11 @@ class PoiService {
     return _poisRef
         .where('isActive', isEqualTo: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Poi.fromJson(doc.data(), id: doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Poi.fromJson(doc.data(), id: doc.id))
+              .toList(),
+        );
   }
 
   Future<Poi?> getPoiById(String id) async {
@@ -127,12 +127,7 @@ class PoiService {
     await _poisRef.doc(id).delete();
   }
 
-  double _distanceInKm(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
+  double _distanceInKm(double lat1, double lon1, double lat2, double lon2) {
     const earthRadius = 6371.0;
 
     final lat1Rad = _toRadians(lat1);

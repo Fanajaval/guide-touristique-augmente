@@ -32,10 +32,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       extendBody: true,
       bottomNavigationBar: MadaGuideBottomNavigation(
         currentIndex: _currentIndex,

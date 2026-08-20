@@ -28,7 +28,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _subscribeToFavorites() {
-    _favoritesSubscription = _favoritesService.favoritesStream().listen((favorites) {
+    _favoritesSubscription = _favoritesService.favoritesStream().listen((
+      favorites,
+    ) {
       if (!mounted) return;
       setState(() {
         _favoritePois = favorites;
@@ -65,9 +67,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   void _openPoiDetail(Poi poi) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => PoiDetailScreen(poi: poi),
-      ),
+      MaterialPageRoute(builder: (context) => PoiDetailScreen(poi: poi)),
     );
   }
 
@@ -94,12 +94,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       body: favoritePois.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                8,
-                16,
-                110,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
               itemCount: favoritePois.length,
               itemBuilder: (context, index) {
                 final poi = favoritePois[index];
@@ -125,9 +120,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(
-                  alpha: 0.10,
-                ),
+                color: AppColors.accent.withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -242,11 +235,7 @@ class _FavoritePoiCard extends StatelessWidget {
                   height: 105,
                   fit: BoxFit.cover,
 
-                  errorBuilder: (
-                    context,
-                    error,
-                    stackTrace,
-                  ) {
+                  errorBuilder: (context, error, stackTrace) {
                     return Container(
                       width: 105,
                       height: 105,
@@ -266,8 +255,7 @@ class _FavoritePoiCard extends StatelessWidget {
               // INFORMATIONS
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // catégorie
                     Container(
@@ -277,11 +265,8 @@ class _FavoritePoiCard extends StatelessWidget {
                       ),
 
                       decoration: BoxDecoration(
-                        color: AppColors.accent.withValues(
-                          alpha: 0.10,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(20),
+                        color: AppColors.accent.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(20),
                       ),
 
                       child: Text(
@@ -365,10 +350,7 @@ class _FavoritePoiCard extends StatelessWidget {
               // FAVORI
               IconButton(
                 onPressed: onFavoritePressed,
-                icon: const Icon(
-                  Icons.favorite,
-                  color: AppColors.accent,
-                ),
+                icon: const Icon(Icons.favorite, color: AppColors.accent),
               ),
             ],
           ),

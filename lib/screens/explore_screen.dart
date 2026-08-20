@@ -14,8 +14,7 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   String _selectedCategory = 'Tous';
   String _searchQuery = '';
@@ -89,8 +88,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final poiCategory = _normalizeCategory(poi.category);
 
       final matchesCategory =
-          _selectedCategory == 'Tous' ||
-          poiCategory == selectedCategory;
+          _selectedCategory == 'Tous' || poiCategory == selectedCategory;
 
       final matchesSearch =
           _searchQuery.isEmpty ||
@@ -111,11 +109,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void _openPoiDetail(Poi poi) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => PoiDetailScreen(
-          poi: poi,
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => PoiDetailScreen(poi: poi)),
     );
   }
 
@@ -133,25 +127,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
         title: const Text(
           'Explorer',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
 
       body: _isLoadingPois
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    16,
-                    4,
-                    16,
-                    12,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                   child: _buildSearchBar(),
                 ),
 
@@ -163,12 +148,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   child: pois.isEmpty
                       ? _buildEmptyState()
                       : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(
-                            16,
-                            0,
-                            16,
-                            24,
-                          ),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
 
                           itemCount: pois.length,
 
@@ -215,30 +195,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
         decoration: InputDecoration(
           hintText: 'Rechercher un lieu...',
-          hintStyle: TextStyle(
-            color: AppColors.grey,
-            fontSize: 14,
-          ),
+          hintStyle: TextStyle(color: AppColors.grey, fontSize: 14),
 
-          prefixIcon: const Icon(
-            Icons.search,
-            color: AppColors.primary,
-          ),
+          prefixIcon: const Icon(Icons.search, color: AppColors.primary),
 
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
                   onPressed: () {
                     _searchController.clear();
                   },
-                  icon: const Icon(
-                    Icons.close,
-                    color: AppColors.grey,
-                  ),
+                  icon: const Icon(Icons.close, color: AppColors.grey),
                 )
-              : const Icon(
-                  Icons.tune,
-                  color: AppColors.primary,
-                ),
+              : const Icon(Icons.tune, color: AppColors.primary),
 
           border: InputBorder.none,
 
@@ -257,39 +225,29 @@ class _ExploreScreenState extends State<ExploreScreen> {
       height: 42,
 
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
 
         scrollDirection: Axis.horizontal,
 
         itemCount: _categories.length,
 
-        separatorBuilder: (context, index) =>
-            const SizedBox(width: 8),
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
 
         itemBuilder: (context, index) {
           final category = _categories[index];
 
-          final isSelected =
-              category == _selectedCategory;
+          final isSelected = category == _selectedCategory;
 
           return GestureDetector(
             onTap: () => _selectCategory(category),
 
             child: AnimatedContainer(
-              duration: const Duration(
-                milliseconds: 200,
-              ),
+              duration: const Duration(milliseconds: 200),
 
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
 
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.white,
+                color: isSelected ? AppColors.primary : AppColors.white,
 
                 borderRadius: BorderRadius.circular(22),
 
@@ -304,9 +262,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 child: Text(
                   category,
                   style: TextStyle(
-                    color: isSelected
-                        ? AppColors.white
-                        : AppColors.textPrimary,
+                    color: isSelected ? AppColors.white : AppColors.textPrimary,
 
                     fontSize: 13,
 
@@ -338,9 +294,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               height: 80,
 
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(
-                  alpha: 0.08,
-                ),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
 
@@ -386,10 +340,7 @@ class _PoiCard extends StatelessWidget {
   final Poi poi;
   final VoidCallback onTap;
 
-  const _PoiCard({
-    required this.poi,
-    required this.onTap,
-  });
+  const _PoiCard({required this.poi, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -415,52 +366,44 @@ class _PoiCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
 
                 child: poi.displayImage.startsWith('http')
-                  ? Image.network(
-                      poi.displayImage,
-                      width: 105,
-                      height: 105,
-                      fit: BoxFit.cover,
-                      errorBuilder: (
-                        context,
-                        error,
-                        stackTrace,
-                      ) {
-                        return Container(
-                          width: 105,
-                          height: 105,
-                          color: AppColors.background,
-                          child: const Icon(
-                            Icons.image_not_supported_outlined,
-                            color: AppColors.grey,
-                            size: 32,
-                          ),
-                        );
-                      },
-                    )
-                  : Image.asset(
-                      poi.displayImage.isEmpty
-                          ? 'assets/images/pois/rova.jpg'
-                          : poi.displayImage,
-                      width: 105,
-                      height: 105,
-                      fit: BoxFit.cover,
-                      errorBuilder: (
-                        context,
-                        error,
-                        stackTrace,
-                      ) {
-                        return Container(
-                          width: 105,
-                          height: 105,
-                          color: AppColors.background,
-                          child: const Icon(
-                            Icons.image_not_supported_outlined,
-                            color: AppColors.grey,
-                            size: 32,
-                          ),
-                        );
-                      },
-                    ),
+                    ? Image.network(
+                        poi.displayImage,
+                        width: 105,
+                        height: 105,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 105,
+                            height: 105,
+                            color: AppColors.background,
+                            child: const Icon(
+                              Icons.image_not_supported_outlined,
+                              color: AppColors.grey,
+                              size: 32,
+                            ),
+                          );
+                        },
+                      )
+                    : Image.asset(
+                        poi.displayImage.isEmpty
+                            ? 'assets/images/pois/rova.jpg'
+                            : poi.displayImage,
+                        width: 105,
+                        height: 105,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 105,
+                            height: 105,
+                            color: AppColors.background,
+                            child: const Icon(
+                              Icons.image_not_supported_outlined,
+                              color: AppColors.grey,
+                              size: 32,
+                            ),
+                          );
+                        },
+                      ),
               ),
 
               const SizedBox(width: 12),
@@ -471,8 +414,7 @@ class _PoiCard extends StatelessWidget {
                   height: 105,
 
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
 
                     children: [
                       // catégorie + note
@@ -483,14 +425,12 @@ class _PoiCard extends StatelessWidget {
                               poi.category,
 
                               maxLines: 1,
-                              overflow:
-                                  TextOverflow.ellipsis,
+                              overflow: TextOverflow.ellipsis,
 
                               style: const TextStyle(
                                 color: AppColors.accent,
                                 fontSize: 12,
-                                fontWeight:
-                                    FontWeight.w600,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
@@ -507,11 +447,9 @@ class _PoiCard extends StatelessWidget {
                             poi.rating.toString(),
 
                             style: const TextStyle(
-                              color:
-                                  AppColors.textPrimary,
+                              color: AppColors.textPrimary,
                               fontSize: 12,
-                              fontWeight:
-                                  FontWeight.w600,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -524,8 +462,7 @@ class _PoiCard extends StatelessWidget {
                         poi.name,
 
                         maxLines: 2,
-                        overflow:
-                            TextOverflow.ellipsis,
+                        overflow: TextOverflow.ellipsis,
 
                         style: const TextStyle(
                           color: AppColors.textPrimary,
@@ -538,8 +475,7 @@ class _PoiCard extends StatelessWidget {
 
                       // adresse
                       Row(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
 
                         children: [
                           const Icon(
@@ -555,8 +491,7 @@ class _PoiCard extends StatelessWidget {
                               poi.address,
 
                               maxLines: 2,
-                              overflow:
-                                  TextOverflow.ellipsis,
+                              overflow: TextOverflow.ellipsis,
 
                               style: TextStyle(
                                 color: AppColors.grey,
@@ -573,10 +508,7 @@ class _PoiCard extends StatelessWidget {
 
               const SizedBox(width: 4),
 
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.grey,
-              ),
+              const Icon(Icons.chevron_right, color: AppColors.grey),
             ],
           ),
         ),

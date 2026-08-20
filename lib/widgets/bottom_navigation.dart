@@ -16,10 +16,7 @@ class MadaGuideBottomNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(30),
@@ -111,9 +108,7 @@ class _NavigationItem extends StatelessWidget {
             children: [
               Icon(
                 isSelected ? activeIcon : icon,
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.grey,
+                color: isSelected ? AppColors.primary : AppColors.grey,
                 size: 24,
               ),
               const SizedBox(height: 3),
@@ -121,11 +116,8 @@ class _NavigationItem extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.grey,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? AppColors.primary : AppColors.grey,
                 ),
               ),
             ],
