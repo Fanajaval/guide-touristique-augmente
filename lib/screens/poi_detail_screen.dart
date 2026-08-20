@@ -118,16 +118,23 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
             ],
 
             flexibleSpace: FlexibleSpaceBar(
-              background: Image.asset(
-                widget.poi.imagePath,
+              background: widget.poi.displayImage.startsWith('http')
+                  ? Image.network(
+                      widget.poi.displayImage,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return _buildImageFallback();
+                      },
+                    )
+                  : Image.asset(
+                widget.poi.displayImage,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppColors.background,
-                    child: const Center(
-                      child: Icon(Icons.image_not_supported_outlined, size: 60),
-                    ),
-                  );
+                errorBuilder: (
+                  context,
+                  error,
+                  stackTrace,
+                ) {
+                  return _buildImageFallback();
                 },
               ),
             ),
@@ -342,6 +349,18 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildImageFallback() {
+    return Container(
+      color: AppColors.background,
+      child: const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          size: 60,
+        ),
       ),
     );
   }

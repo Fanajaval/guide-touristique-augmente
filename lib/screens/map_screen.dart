@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui' as ui;
 
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -24,6 +26,8 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   final LocationService _locationService = LocationService();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   IconData _getPoiIcon(String category) {
     final normalized = category
@@ -79,11 +83,281 @@ class _MapScreenState extends State<MapScreen> {
 
   bool _isLoadingLocation = true;
   List<Poi> _pois = [];
+  String _searchQuery = '';
+  String _selectedCategory = 'Tous';
+  Timer? _locationSearchTimer;
+  List<_MapLocationResult> _locationResults = [];
+  bool _isSearchingLocations = false;
+  List<LatLng> _routePoints = [];
+  double? _routeDistanceInMeters;
+  double? _routeDurationInSeconds;
+  String? _routeDestinationName;
+  LatLng? _routeDestination;
+  bool _isLoadingRoute = false;
+  int _routeRequestId = 0;
 
   //position si gps indispo
   final LatLng _initialPosition = const LatLng(-18.8792, 47.5079);
 
   double _currentZoom = 13.0;
+
+  String _normalizeSearchText(String text) {
+    return text
+        .trim()
+        .toLowerCase()
+        .replaceAll('é', 'e')
+        .replaceAll('è', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('ô', 'o')
+        .replaceAll('à', 'a')
+        .replaceAll('ç', 'c')
+        .replaceAll('ù', 'u')
+        .replaceAll('û', 'u');
+  }
+
+  List<Poi> get _visiblePois {
+    final category = _normalizeSearchText(_selectedCategory);
+
+    return _pois.where((poi) {
+      final matchesCategory =
+          _selectedCategory == 'Tous' ||
+          _normalizeSearchText(poi.category) == category;
+      return matchesCategory;
+    }).toList();
+  }
+
+  void _searchLocations(String value) {
+    _locationSearchTimer?.cancel();
+    final query = value.trim();
+
+    if (query.length < 2) {
+      setState(() {
+        _locationResults = [];
+        _isSearchingLocations = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearchingLocations = true;
+    });
+
+    _locationSearchTimer = Timer(
+      const Duration(milliseconds: 500),
+      () => _loadLocationResults(query),
+    );
+  }
+
+  Future<void> _loadLocationResults(String query) async {
+    try {
+      final response = await http.get(
+        Uri.https(
+          'nominatim.openstreetmap.org',
+          '/search',
+          {
+            'q': query,
+            'format': 'jsonv2',
+            'limit': '5',
+            'countrycodes': 'mg',
+            'addressdetails': '1',
+          },
+        ),
+        headers: const {
+          'User-Agent': 'MadaGuide/1.0 (Flutter tourist guide)',
+        },
+      );
+
+      if (!mounted || _searchController.text.trim() != query) {
+        return;
+      }
+
+      if (response.statusCode != 200) {
+        throw Exception('Geocoding request failed');
+      }
+
+      final data = jsonDecode(response.body) as List<dynamic>;
+      final results = data
+          .whereType<Map<String, dynamic>>()
+          .map(_MapLocationResult.fromJson)
+          .whereType<_MapLocationResult>()
+          .toList();
+
+      setState(() {
+        _locationResults = results;
+        _isSearchingLocations = false;
+      });
+    } catch (_) {
+      if (!mounted || _searchController.text.trim() != query) {
+        return;
+      }
+
+      setState(() {
+        _locationResults = [];
+        _isSearchingLocations = false;
+      });
+    }
+  }
+
+  void _selectLocation(_MapLocationResult location) {
+    _searchController.text = location.displayName;
+    _searchController.selection = TextSelection.collapsed(
+      offset: _searchController.text.length,
+    );
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _locationResults = [];
+    });
+
+    _mapController.move(location.position, 16.0);
+    _loadRouteTo(location.position, location.name);
+  }
+
+  Future<void> _loadRouteTo(LatLng destination, String destinationName) async {
+    final origin = _userPosition;
+    if (origin == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Position actuelle indisponible.')),
+        );
+      }
+      return;
+    }
+
+    final requestId = ++_routeRequestId;
+    setState(() {
+      _isLoadingRoute = true;
+      _routeDestinationName = destinationName;
+      _routeDestination = destination;
+      _routePoints = [];
+      _routeDistanceInMeters = null;
+      _routeDurationInSeconds = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.https(
+          'router.project-osrm.org',
+          '/route/v1/driving/${origin.longitude},${origin.latitude};'
+              '${destination.longitude},${destination.latitude}',
+          {
+            'overview': 'full',
+            'geometries': 'geojson',
+            'steps': 'false',
+          },
+        ),
+        headers: const {
+          'User-Agent': 'MadaGuide/1.0 (Flutter tourist guide)',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Route request failed');
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final routes = data['routes'] as List<dynamic>?;
+      if (routes == null || routes.isEmpty) {
+        throw Exception('No route found');
+      }
+
+      final route = routes.first as Map<String, dynamic>;
+      final geometry = route['geometry'] as Map<String, dynamic>?;
+      final coordinates = geometry?['coordinates'] as List<dynamic>?;
+      if (coordinates == null || coordinates.isEmpty) {
+        throw Exception('Route geometry missing');
+      }
+
+      final points = coordinates
+          .whereType<List<dynamic>>()
+          .where((point) => point.length >= 2)
+          .map((point) => LatLng(
+                (point[1] as num).toDouble(),
+                (point[0] as num).toDouble(),
+              ))
+          .toList();
+
+      if (!mounted || requestId != _routeRequestId) {
+        return;
+      }
+
+      setState(() {
+        _routePoints = points;
+        _routeDistanceInMeters = (route['distance'] as num?)?.toDouble();
+        _routeDurationInSeconds = (route['duration'] as num?)?.toDouble();
+        _isLoadingRoute = false;
+      });
+    } catch (_) {
+      if (!mounted || requestId != _routeRequestId) {
+        return;
+      }
+
+      setState(() {
+        _isLoadingRoute = false;
+        _routePoints = [];
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Impossible de calculer cet itinéraire.'),
+        ),
+      );
+    }
+  }
+
+  void _clearRoute() {
+    ++_routeRequestId;
+    setState(() {
+      _routePoints = [];
+      _routeDistanceInMeters = null;
+      _routeDurationInSeconds = null;
+      _routeDestinationName = null;
+      _routeDestination = null;
+      _isLoadingRoute = false;
+    });
+  }
+
+  Future<void> _openCategoryFilter() async {
+    const categories = [
+      'Tous',
+      'Monument',
+      'Nature',
+      'Musée',
+      'Marché',
+      'Restaurant',
+      'Hôtel',
+    ];
+
+    final selectedCategory = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: categories.map((category) {
+              return ListTile(
+                leading: Icon(
+                  category == _selectedCategory
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  color: AppColors.primary,
+                ),
+                title: Text(category),
+                onTap: () => Navigator.pop(context, category),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || selectedCategory == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedCategory = selectedCategory;
+    });
+  }
 
   @override
   void initState() {
@@ -185,7 +459,11 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _positionSubscription?.cancel();
+    _locationSearchTimer?.cancel();
+    ++_routeRequestId;
     _mapController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
 
     super.dispose();
   }
@@ -212,7 +490,18 @@ class _MapScreenState extends State<MapScreen> {
               userAgentPackageName: 'com.example.guide_touristique_augmente',
             ),
 
-            //position utilisateur
+            if (_routePoints.isNotEmpty)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePoints,
+                    color: AppColors.accent,
+                    strokeWidth: 5,
+                  ),
+                ],
+              ),
+ 
+          //position utilisateur
             MarkerLayer(
               markers: [
                 if (_userPosition != null)
@@ -250,7 +539,7 @@ class _MapScreenState extends State<MapScreen> {
                   ),
 
                 //poi
-                ..._pois.map(
+                ..._visiblePois.map(
                   (poi) => Marker(
                     point: LatLng(poi.latitude, poi.longitude),
                     width: 50,
@@ -258,6 +547,10 @@ class _MapScreenState extends State<MapScreen> {
 
                     child: GestureDetector(
                       onTap: () {
+                        _loadRouteTo(
+                          LatLng(poi.latitude, poi.longitude),
+                          poi.name,
+                        );
                         _showPoiPreview(poi);
                       },
 
@@ -305,6 +598,17 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                 ),
+                if (_routeDestination != null)
+                  Marker(
+                    point: _routeDestination!,
+                    width: 48,
+                    height: 48,
+                    child: const Icon(
+                      Icons.location_on,
+                      color: AppColors.primary,
+                      size: 42,
+                    ),
+                  ),
               ],
             ),
           ],
@@ -339,9 +643,33 @@ class _MapScreenState extends State<MapScreen> {
 
         Positioned(top: 16, left: 16, right: 16, child: _buildSearchBar()),
 
-        Positioned(right: 16, top: 100, child: _buildMapControls()),
+        if (_locationResults.isNotEmpty || _isSearchingLocations)
+          Positioned(
+            top: 72,
+            left: 16,
+            right: 16,
+            child: _buildLocationResults(),
+          ),
 
-        Positioned(left: 16, bottom: 90, child: _buildMapInfo()),
+        Positioned(
+          right: 16,
+          top: 100,
+          child: _buildMapControls(),
+        ),
+
+        Positioned(
+          left: 16,
+          bottom: _routePoints.isNotEmpty || _isLoadingRoute ? 175 : 90,
+          child: _buildMapInfo(),
+        ),
+
+        if (_routePoints.isNotEmpty || _isLoadingRoute)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 90,
+            child: _buildRouteInfo(),
+          ),
       ],
     );
   }
@@ -364,21 +692,111 @@ class _MapScreenState extends State<MapScreen> {
 
         child: Row(
           children: [
-            const Icon(Icons.search, color: AppColors.primary),
+            const SizedBox(
+              width: 24,
+              child: Icon(
+                Icons.search,
+                color: AppColors.primary,
+              ),
+            ),
 
             const SizedBox(width: 12),
 
             Expanded(
-              child: Text(
-                'Rechercher un lieu...',
-                style: TextStyle(color: AppColors.grey, fontSize: 15),
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                  _searchLocations(value);
+                },
+                decoration: InputDecoration(
+                  hintText: 'Rechercher un lieu...',
+                  hintStyle: TextStyle(
+                    color: AppColors.grey,
+                    fontSize: 15,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                ),
               ),
             ),
 
-            const Icon(Icons.tune, color: AppColors.primary),
+            _searchQuery.isNotEmpty
+                ? IconButton(
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                        _locationResults = [];
+                      });
+                      _locationSearchTimer?.cancel();
+                    },
+                    tooltip: 'Effacer la recherche',
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.grey,
+                    ),
+                  )
+                : IconButton(
+                    onPressed: _openCategoryFilter,
+                    tooltip: 'Filtrer les lieux',
+                    icon: const Icon(
+                      Icons.tune,
+                      color: AppColors.primary,
+                    ),
+                  ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLocationResults() {
+    return Material(
+      elevation: 4,
+      borderRadius: BorderRadius.circular(16),
+      color: AppColors.white,
+      child: _isSearchingLocations
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          : ListView.separated(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              itemCount: _locationResults.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final location = _locationResults[index];
+                return ListTile(
+                  dense: true,
+                  leading: const Icon(
+                    Icons.location_on_outlined,
+                    color: AppColors.primary,
+                  ),
+                  title: Text(
+                    location.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    location.displayName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () => _selectLocation(location),
+                );
+              },
+            ),
     );
   }
 
@@ -401,7 +819,69 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  //info carte
+  Widget _buildRouteInfo() {
+    return Material(
+      elevation: 5,
+      borderRadius: BorderRadius.circular(18),
+      color: AppColors.white,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        child: Row(
+          children: [
+            const Icon(Icons.directions_car, color: AppColors.accent),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _isLoadingRoute
+                  ? const Text('Calcul de l’itinéraire...')
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _routeDestinationName ?? 'Itinéraire',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_formatDistance(_routeDistanceInMeters!)} • '
+                          '${_formatDuration(_routeDurationInSeconds!)}',
+                          style: TextStyle(
+                            color: AppColors.grey,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+            IconButton(
+              onPressed: _clearRoute,
+              tooltip: 'Effacer l’itinéraire',
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDistance(double meters) {
+    if (meters >= 1000) {
+      return '${(meters / 1000).toStringAsFixed(1)} km';
+    }
+    return '${meters.round()} m';
+  }
+
+  String _formatDuration(double seconds) {
+    final duration = Duration(seconds: seconds.round());
+    if (duration.inHours > 0) {
+      return '${duration.inHours} h ${duration.inMinutes.remainder(60)} min';
+    }
+    return '${duration.inMinutes} min';
+  }
+
+//info carte
   Widget _buildMapInfo() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -466,6 +946,36 @@ class _MapButton extends StatelessWidget {
           child: Icon(icon, color: AppColors.primary, size: 22),
         ),
       ),
+    );
+  }
+}
+
+class _MapLocationResult {
+  final String name;
+  final String displayName;
+  final LatLng position;
+
+  const _MapLocationResult({
+    required this.name,
+    required this.displayName,
+    required this.position,
+  });
+
+  static _MapLocationResult? fromJson(Map<String, dynamic> json) {
+    final latitude = double.tryParse(json['lat']?.toString() ?? '');
+    final longitude = double.tryParse(json['lon']?.toString() ?? '');
+
+    if (latitude == null || longitude == null) {
+      return null;
+    }
+
+    final displayName = json['display_name']?.toString() ?? '';
+    final name = json['name']?.toString().trim();
+
+    return _MapLocationResult(
+      name: name == null || name.isEmpty ? displayName : name,
+      displayName: displayName,
+      position: LatLng(latitude, longitude),
     );
   }
 }
