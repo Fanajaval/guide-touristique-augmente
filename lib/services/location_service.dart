@@ -6,8 +6,7 @@ class LocationService {
   }
 
   Future<LocationPermission> requestPermission() async {
-    LocationPermission permission =
-        await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -39,8 +38,6 @@ class LocationService {
       distanceFilter: 10,
     );
 
-    return Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    );
+    return Geolocator.getPositionStream(locationSettings: locationSettings);
   }
 }

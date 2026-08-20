@@ -7,18 +7,14 @@ import '../theme/app_theme.dart';
 class PoiDetailScreen extends StatefulWidget {
   final Poi poi;
 
-  const PoiDetailScreen({
-    super.key,
-    required this.poi,
-  });
+  const PoiDetailScreen({super.key, required this.poi});
 
   @override
   State<PoiDetailScreen> createState() => _PoiDetailScreenState();
 }
 
 class _PoiDetailScreenState extends State<PoiDetailScreen> {
-  final FavoritesService _favoritesService =
-      FavoritesService.instance;
+  final FavoritesService _favoritesService = FavoritesService.instance;
 
   bool _isFavorite = false;
 
@@ -95,20 +91,14 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
 
             backgroundColor: AppColors.primary,
 
-            iconTheme: const IconThemeData(
-              color: AppColors.white,
-            ),
+            iconTheme: const IconThemeData(color: AppColors.white),
 
             actions: [
               Padding(
-                padding: const EdgeInsets.only(
-                  right: 12,
-                ),
+                padding: const EdgeInsets.only(right: 12),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.white.withValues(
-                      alpha: 0.90,
-                    ),
+                    color: AppColors.white.withValues(alpha: 0.90),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
@@ -156,23 +146,18 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
               padding: const EdgeInsets.all(20),
 
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
 
                 children: [
                   //categorie
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(
-                        alpha: 0.12,
-                      ),
-                      borderRadius:
-                          BorderRadius.circular(20),
+                      color: AppColors.accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       widget.poi.category,
@@ -188,8 +173,7 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
 
                   //nom+note
                   Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
@@ -205,15 +189,13 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
                       const SizedBox(width: 12),
 
                       Container(
-                        padding:
-                            const EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.white,
-                          borderRadius:
-                              BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                           boxShadow: const [
                             BoxShadow(
                               color: Color(0x12000000),
@@ -236,10 +218,8 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
                             Text(
                               widget.poi.rating.toString(),
                               style: const TextStyle(
-                                color:
-                                    AppColors.textPrimary,
-                                fontWeight:
-                                    FontWeight.bold,
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
@@ -252,8 +232,7 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
 
                   //adresse
                   Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(
                         Icons.location_on_outlined,
@@ -266,10 +245,7 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
                       Expanded(
                         child: Text(
                           widget.poi.address,
-                          style: TextStyle(
-                            color: AppColors.grey,
-                            fontSize: 15,
-                          ),
+                          style: TextStyle(color: AppColors.grey, fontSize: 15),
                         ),
                       ),
                     ],
@@ -346,9 +322,7 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
                         // Navigation GPS à ajouter plus tard.
                       },
 
-                      icon: const Icon(
-                        Icons.directions,
-                      ),
+                      icon: const Icon(Icons.directions),
 
                       label: const Text(
                         'Y aller',
@@ -359,15 +333,11 @@ class _PoiDetailScreenState extends State<PoiDetailScreen> {
                       ),
 
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            AppColors.accent,
-                        foregroundColor:
-                            AppColors.white,
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: AppColors.white,
                         elevation: 3,
-                        shape:
-                            RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
                         ),
                       ),
                     ),
@@ -433,33 +403,23 @@ class _InfoCard extends StatelessWidget {
             height: 42,
 
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(
-                alpha: 0.10,
-              ),
+              color: AppColors.primary.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
 
-            child: Icon(
-              icon,
-              color: AppColors.primary,
-              size: 21,
-            ),
+            child: Icon(icon, color: AppColors.primary, size: 21),
           ),
 
           const SizedBox(width: 12),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
 
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    color: AppColors.grey,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppColors.grey, fontSize: 12),
                 ),
 
                 const SizedBox(height: 3),
