@@ -127,6 +127,34 @@ class PoiService {
     await _poisRef.doc(id).delete();
   }
 
+  double distanceInKm(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    return _distanceInKm(lat1, lon1, lat2, lon2);
+  }
+
+  String distanceLabel(
+    double userLat,
+    double userLng,
+    Poi poi,
+  ) {
+    final distance = distanceInKm(
+      userLat,
+      userLng,
+      poi.latitude,
+      poi.longitude,
+    );
+
+    if (distance < 1) {
+      return '${(distance * 1000).round()} m';
+    }
+
+    return '${distance.toStringAsFixed(1)} km';
+  }
+
   double _distanceInKm(double lat1, double lon1, double lat2, double lon2) {
     const earthRadius = 6371.0;
 
