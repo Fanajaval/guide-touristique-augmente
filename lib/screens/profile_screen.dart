@@ -1,10 +1,44 @@
 import 'package:flutter/material.dart';
-
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'favorites_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String _displayName = 'Utilisateur';
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      final user = AuthService.instance.currentUser;
+      _displayName = user?.displayName?.trim().isNotEmpty == true
+          ? user!.displayName!
+          : user?.email?.split('@').first ?? 'Utilisateur';
+      _loadNotificationPreference();
+    } catch (_) {
+      // Permet d'afficher le profil dans un test ou avant Firebase.
+    }
+  }
+
+  Future<void> _loadNotificationPreference() async {
+    try {
+      final enabled = await AuthService.instance.notificationsEnabled();
+      if (!mounted) return;
+      setState(() {
+        _notificationsEnabled = enabled;
+      });
+    } catch (_) {
+      // Le réglage local par défaut reste activé si Firestore est indisponible.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +70,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               //carte profil
-              _buildProfileCard(),
+              _buildProfileCard(context),
 
               const SizedBox(height: 28),
 
@@ -89,7 +123,7 @@ class ProfileScreen extends StatelessWidget {
                 title: 'Paramètres',
                 subtitle: 'Personnalisez votre expérience',
                 onTap: () {
-                  // Écran paramètres à ajouter plus tard.
+                  _showSettingsSheet(context);
                 },
               ),
 
@@ -101,7 +135,7 @@ class ProfileScreen extends StatelessWidget {
                 title: 'Notifications',
                 subtitle: 'Gérez vos notifications',
                 onTap: () {
-                  // Gestion des notifications à ajouter plus tard.
+                  _showNotificationsSheet(context);
                 },
               ),
 
@@ -132,7 +166,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 28),
 
               //deconnexion
-              _buildLogoutButton(),
+              _buildLogoutButton(context),
             ],
           ),
         ),
@@ -142,7 +176,7 @@ class ProfileScreen extends StatelessWidget {
 
   //carte profil
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -190,12 +224,12 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(width: 16),
 
           //info temporaires
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Utilisateur',
+                  _displayName,
                   style: TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 20,
@@ -216,17 +250,10 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
 
-          //btn modifier
-          Container(
-            width: 40,
-            height: 40,
-
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              shape: BoxShape.circle,
-            ),
-
-            child: const Icon(
+          IconButton(
+            onPressed: () => _showEditProfileDialog(context),
+            tooltip: 'Modifier le profil',
+            icon: const Icon(
               Icons.edit_outlined,
               color: AppColors.primary,
               size: 20,
@@ -238,14 +265,14 @@ class ProfileScreen extends StatelessWidget {
   }
 
   //btn deconnexion
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 52,
 
       child: OutlinedButton.icon(
         onPressed: () {
-          // Déconnexion Firebase à ajouter plus tard.
+          _confirmLogout(context);
         },
 
         icon: const Icon(
@@ -275,6 +302,187 @@ class ProfileScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showEditProfileDialog(BuildContext context) async {
+    final controller = TextEditingController(text: _displayName);
+
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Modifier le profil'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Nom',
+              hintText: 'Entrez votre nom',
+            ),
+            onSubmitted: (value) => Navigator.pop(context, value),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: const Text('Enregistrer'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+
+    if (!mounted || name == null || name.trim().isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _displayName = name.trim();
+    });
+
+    try {
+      await AuthService.instance.updateProfile(name: _displayName);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        const SnackBar(content: Text('Le profil n’a pas pu être enregistré.')),
+      );
+    }
+  }
+
+  void _showSettingsSheet(BuildContext context) {
+    var useLocation = true;
+    var useAnimations = true;
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const ListTile(
+                    leading: Icon(Icons.settings_outlined),
+                    title: Text('Paramètres'),
+                  ),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.location_on_outlined),
+                    title: const Text('Utiliser ma position'),
+                    subtitle: const Text('Afficher les lieux proches de vous'),
+                    value: useLocation,
+                    onChanged: (value) {
+                      setSheetState(() {
+                        useLocation = value;
+                      });
+                    },
+                  ),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.animation_outlined),
+                    title: const Text('Animations'),
+                    subtitle: const Text('Activer les transitions de l’application'),
+                    value: useAnimations,
+                    onChanged: (value) {
+                      setSheetState(() {
+                        useAnimations = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showNotificationsSheet(BuildContext context) {
+    var notificationsEnabled = _notificationsEnabled;
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const ListTile(
+                    leading: Icon(Icons.notifications_none_rounded),
+                    title: Text('Notifications'),
+                  ),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.notifications_active_outlined),
+                    title: const Text('Recevoir les notifications'),
+                    subtitle: const Text('Conseils et nouveautés touristiques'),
+                    value: notificationsEnabled,
+                    onChanged: (value) {
+                      setSheetState(() {
+                        notificationsEnabled = value;
+                      });
+                      _notificationsEnabled = value;
+                      AuthService.instance.updateNotifications(value).catchError(
+                        (_) {},
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Se déconnecter ?'),
+          content: const Text('Votre session Firebase sera fermée.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Se déconnecter'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout != true || !context.mounted) {
+      return;
+    }
+
+    try {
+      await AuthService.instance.signOut();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vous êtes déconnecté.')),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La déconnexion a échoué.')),
+      );
+    }
   }
 
   //about

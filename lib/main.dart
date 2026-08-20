@@ -3,9 +3,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+import 'screens/auth_screen.dart';
 import 'screens/main_screen.dart';
 import 'services/favorites_service.dart';
-import 'services/poi_service.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -14,22 +14,6 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-  try {
-    if (FirebaseAuth.instance.currentUser == null) {
-      await FirebaseAuth.instance.signInAnonymously();
-    }
-    await PoiService.instance.importMockPoisOnce();
-  } catch (error) {
-    // L'application peut démarrer même si Firestore refuse l'import.
-    debugPrint('Import des POIs impossible: $error');
-  }
-
-  try {
-    await FavoritesService.instance.loadFavorites();
-  } catch (_) {
-    // La persistance des favoris est optionnelle au démarrage.
-  }
 
   runApp(const MadaGuideApp());
 }
@@ -43,7 +27,36 @@ class MadaGuideApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'MadaGuide',
       theme: AppTheme.lightTheme,
-      home: const MainScreen(),
+      home: const AuthGate(),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final user = snapshot.data;
+        if (user == null || user.isAnonymous) {
+          return const AuthScreen();
+        }
+
+        FavoritesService.instance.loadFavorites().then<void>(
+          (_) {},
+          onError: (_) {},
+        );
+        return const MainScreen();
+      },
     );
   }
 }
